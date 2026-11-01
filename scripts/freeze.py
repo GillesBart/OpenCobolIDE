@@ -58,7 +58,7 @@ for s in get_all_styles():
         pass
     else:
         pygments_styles.append(module)
-print('pygment styles', pygments_styles)
+print('pygments styles:', len(pygments_styles))
 
 pygments_lexers = []
 lexers_dir = os.path.dirname(lexers.__file__)
@@ -66,7 +66,7 @@ for file in os.listdir(lexers_dir):
     name = os.path.splitext(file)[0]
     if name not in ['__pycache__']:
         pygments_lexers.append('pygments.lexers.%s' % name)
-print('pygment lexers', pygments_lexers)
+print('pygments lexers:', len(pygments_lexers))
 
 
 # build options
@@ -75,8 +75,7 @@ options = {
     # pyqode is a namespace package bundled in open_cobol_ide/extlibs
     'packages': ['pyqode', 'pyqode.core', 'pyqode.cobol', 'pyqode.qt'],
     # freeze the pygments default style along with our executable
-    'includes': ['pkg_resources', 'six', 'packaging'] +
-                pygments_styles + pygments_lexers
+    'includes': pygments_styles + pygments_lexers
 }
 
 if windows:
@@ -92,12 +91,12 @@ setup(name=app_name,
           'iconfile': app_icon, 'custom_info_plist': 'share/Info.plist'}},
       executables=[
           Executable(app_script,
-                     targetName=app_exe,
+                     target_name=app_exe,
                      icon=app_icon if windows else None,
                      base='Win32GUI' if windows else None),
-          Executable(console_script, targetName=console_exe),
-          Executable(srv_script, targetName=srv_exe),
-          Executable(core_srv_script, targetName=core_srv_exe)
+          Executable(console_script, target_name=console_exe),
+          Executable(srv_script, target_name=srv_exe),
+          Executable(core_srv_script, target_name=core_srv_exe)
       ])
 
 if windows:
