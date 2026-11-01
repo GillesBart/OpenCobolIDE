@@ -142,11 +142,6 @@ class ViewController(Controller):
         icon_report_bug = QIcon.fromTheme('tools-report-bug')
         icon_lock = QIcon.fromTheme('system-lock-screen', QtGui.QIcon(
             ':/ide-icons/rc/lock.png'))
-        if QIcon.hasThemeIcon('run-build-clean'):
-            icon_clean = QIcon.fromTheme('run-build-clean')
-        else:
-            icon_clean = QIcon.fromTheme('edit-clear', QtGui.QIcon(
-                ':/ide-icons/rc/edit-clear.png'))
         icon_rebuild = QIcon.fromTheme('view-refresh', QtGui.QIcon(
             ':/ide-icons/rc/view-refresh.png'))
 
@@ -177,7 +172,6 @@ class ViewController(Controller):
             QtWidgets.QAction.PreferencesRole)
         self.ui.actionQuit.setMenuRole(QtWidgets.QAction.QuitRole)
         self.ui.actionReport_a_bug.setIcon(icon_report_bug)
-        self.ui.actionClean.setIcon(icon_clean)
         self.ui.actionRebuild.setIcon(icon_rebuild)
 
         if system.darwin:

@@ -471,7 +471,6 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionClean"/>
    <addaction name="actionRebuild"/>
    <addaction name="actionRun"/>
   </widget>
@@ -686,7 +685,6 @@
     <addaction name="menuProgramType"/>
     <addaction name="separator"/>
     <addaction name="actionCompile"/>
-    <addaction name="actionClean"/>
     <addaction name="actionRebuild"/>
     <addaction name="actionRun"/>
     <addaction name="separator"/>
@@ -1283,14 +1281,6 @@
    </property>
    <property name="text">
     <string>&amp;Import preferences</string>
-   </property>
-  </action>
-  <action name="actionClean">
-   <property name="text">
-    <string>C&amp;lean</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Alt+C</string>
    </property>
   </action>
   <action name="actionRebuild">

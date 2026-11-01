@@ -223,18 +223,8 @@ class EditController(Controller):
                 self.ui.actionEnableLinter.setEnabled(False)
             else:
                 self.ui.actionEnableLinter.setEnabled(True)
-            # update current editor menu
-            self.ui.mnuActiveEditor.clear()
-            self.ui.mnuActiveEditor.addActions(
-                [a for a in editor.actions() if not hasattr(
-                    a, 'dont_show_in_edit_menu')])
-            self.ui.mnuActiveEditor.addSeparator()
-            try:
-                for m in editor._menus:
-                    self.ui.mnuActiveEditor.addMenu(m)
-            except AttributeError:
-                # not a code edit
-                pass
+            # update current editor menu (actions placed directly in Edit)
+            _fill_edit_menu(self.ui, editor)
 
             # update file type menu
             self.app.cobol.display_file_type(editor)
@@ -340,3 +330,44 @@ class EditController(Controller):
         Settings().free_format = state
         for editor in self.ui.tabWidgetEditors.widgets(include_clones=True):
             update_editor_settings(editor)
+
+
+def _fill_edit_menu(ui, editor):
+    """
+    Place les actions de l'editeur actif, puis celles de son sous-menu
+    'Advanced', directement dans le menu Edit (avant Preferences).
+    """
+    menu = ui.menuEdit
+    menu.removeAction(ui.mnuActiveEditor.menuAction())
+    for a in getattr(ui, '_edit_dynamic', []):
+        menu.removeAction(a)
+    acts = menu.actions()
+    pref = acts.index(ui.actionPreferences)
+    anchor = ui.actionPreferences
+    if pref and acts[pref - 1].isSeparator():
+        anchor = acts[pref - 1]
+    dynamic = []
+
+    def add(action):
+        menu.insertAction(anchor, action)
+        dynamic.append(action)
+
+    def new_group():
+        if dynamic and not dynamic[-1].isSeparator():
+            dynamic.append(menu.insertSeparator(anchor))
+
+    for a in editor.actions():
+        if not hasattr(a, 'dont_show_in_edit_menu'):
+            add(a)
+    advanced = getattr(editor, '_sub_menus', {}).get('Advanced')
+    others = [m for m in getattr(editor, '_menus', []) if m is not advanced]
+    if advanced is not None and advanced.actions():
+        new_group()
+        for a in advanced.actions():
+            add(a)
+    if others:
+        new_group()
+        for m in others:
+            menu.insertMenu(anchor, m)
+            dynamic.append(m.menuAction())
+    ui._edit_dynamic = dynamic

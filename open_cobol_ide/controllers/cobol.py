@@ -136,7 +136,7 @@ class CobolController(Controller):
         self.run_buttons = []
         self.create_bt_compile()
         self.ui.toolBarCOBOL.insertWidget(
-            self.ui.actionClean, self.compile_buttons[0])
+            self.ui.actionRebuild, self.compile_buttons[0])
         group.triggered.connect(self._on_program_type_changed)
         self.ui.actionCompile.triggered.connect(self.compile)
         self.ui.errorsTable.msg_activated.connect(self._goto_error_msg)
@@ -144,7 +144,6 @@ class CobolController(Controller):
         self._run_requested = False
         self.ui.consoleOutput.process_finished.connect(self._on_run_finished)
         self.ui.actionCancel.triggered.connect(self.cancel)
-        self.ui.actionClean.triggered.connect(self.clean)
         self.ui.actionRebuild.triggered.connect(self.rebuild)
         self._exception_flags = []
 
@@ -248,10 +247,6 @@ class CobolController(Controller):
         self._compilation_thread.start()
         self._exception_flags[:] = []
 
-    def clean(self):
-        path = self.app.edit.current_editor.file.path
-        CobolController.clean_file(path)
-
     @staticmethod
     def clean_file(path):
         output_path = GnuCobolCompiler().get_output_filename(
@@ -269,7 +264,8 @@ class CobolController(Controller):
             _logger().debug('file removed: %s', output_path)
 
     def rebuild(self):
-        self.clean()
+        CobolController.clean_file(
+            self.app.edit.current_editor.file.path)
         self.compile()
 
     def _on_command_started(self, cmd):
