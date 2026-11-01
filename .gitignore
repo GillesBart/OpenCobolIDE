@@ -60,3 +60,7 @@ deb_dist
 # hackedit project files
 .hackedit
 
+data/
+build/
+setup.iss
+.venv/
