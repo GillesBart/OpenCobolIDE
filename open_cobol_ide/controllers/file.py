@@ -112,7 +112,10 @@ class FileController(Controller):
         :param path: path of the file to open.
         """
         if system.windows:
-            if not self._warning_unc and os.path.splitunc(path)[0]:
+            # os.path.splitunc() was removed in Python 3.7: a UNC path is a
+            # path whose "drive" starts with two separators
+            is_unc = os.path.splitdrive(path)[0].startswith(('\\\\', '//'))
+            if not self._warning_unc and is_unc:
                 answer = QtWidgets.QMessageBox.warning(
                     self.main_window, 'UNC pathnames not fully supported',
                     UNC_WARNING,

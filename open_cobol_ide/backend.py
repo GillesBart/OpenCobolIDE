@@ -14,6 +14,11 @@ import os
 import sys
 
 sys.path.insert(0, os.environ.get('OCIDE_EXTLIBS_PATH', ''))
+# From a source checkout the package itself must be importable too: the
+# workers are referenced by name (open_cobol_ide.linter.lint, ...)
+if not getattr(sys, 'frozen', False):
+    sys.path.insert(
+        1, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 if __name__ == '__main__':

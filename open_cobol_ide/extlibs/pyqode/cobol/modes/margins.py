@@ -87,7 +87,7 @@ class MarginsMode(Mode):
                 continue
             offset = self.editor.contentOffset().x() + \
                 self.editor.document().documentMargin()
-            x_pos = round(metrics.width(' ') * pos) + offset
+            x_pos = int(round(metrics.width(' ') * pos) + offset)
             painter.setPen(pen)
             painter.drawLine(x_pos, 0, x_pos, 2 ** 16)
 

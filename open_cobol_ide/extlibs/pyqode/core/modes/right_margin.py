@@ -77,7 +77,7 @@ class RightMarginMode(Mode):
         pos = self._margin_pos
         offset = self.editor.contentOffset().x() + \
             self.editor.document().documentMargin()
-        x80 = round(metrics.width(' ') * pos) + offset
+        x80 = int(round(metrics.width(' ') * pos) + offset)
         painter = QtGui.QPainter(self.editor.viewport())
         painter.setPen(self._pen)
         painter.drawLine(x80, 0, x80, 2 ** 16)

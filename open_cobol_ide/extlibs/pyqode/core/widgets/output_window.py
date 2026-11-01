@@ -720,7 +720,7 @@ class AnsiEscapeCodeParser(object):
                                 elif index < 232:
                                     # The next 216 colors are a 6x6x6 RGB cube.
                                     o = index - 16
-                                    color = QtGui.QColor((o / 36) * 51, ((o / 6) % 6) * 51, (o % 6) * 51)
+                                    color = QtGui.QColor((o // 36) * 51, ((o // 6) % 6) * 51, (o % 6) * 51)
                                 else:
                                     # The last 24 colors are a greyscale gradient.
                                     grey = (index - 232) * 11

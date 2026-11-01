@@ -212,7 +212,8 @@ class FileSystemTreeView(QtWidgets.QTreeView):
             self._path_to_set = path
             self._hide_extra_colums = hide_extra_columns
             return
-        if sys.platform == 'win32' and os.path.splitunc(path)[0]:
+        if sys.platform == 'win32' and os.path.splitdrive(path)[0].startswith(
+                ('\\\\', '//')):
             mdl = QtGui.QStandardItemModel(1, 1)
             item = QtGui.QStandardItem(
                 QtGui.QIcon.fromTheme(
