@@ -421,6 +421,13 @@ class Settings(object):
     @property
     def compiler_path(self):
         default = 'cobc.exe' if system.windows else 'cobc'
+        try:
+            # prefer the compiler bundled next to the application, if any
+            bundled = self.default_compiler_path()
+            if bundled and os.path.exists(bundled):
+                default = bundled
+        except Exception:
+            pass
         path = self._settings.value('compilerPath', default)
         return system.normpath(system.from_portable(path))
 

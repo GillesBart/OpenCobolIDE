@@ -17,8 +17,7 @@ def make_linter_command(cobol_file_name, original_file_path):
     from .settings import Settings
     settings = Settings()
     args = ['-fsyntax-only', '-I%s' % os.path.dirname(original_file_path)]
-    args.append('-std=%s' % str(settings.cobol_standard).replace(
-        'GnuCobolStandard.', ''))
+    args.append('-std=%s' % settings.cobol_standard.name)
     args += settings.compiler_flags
     original_path = os.path.dirname(original_file_path)
     if settings.free_format:
