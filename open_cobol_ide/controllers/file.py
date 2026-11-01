@@ -38,6 +38,9 @@ class FileController(Controller):
         self.recent_files_manager = widgets.RecentFilesManager(
             'OpenCobolIDE', 'OpenCobolIDE4',
             qsettings=system.make_settings('OpenCobolIDE4'))
+        # keep the list valid when the application folder is moved
+        self.recent_files_manager.store_path = system.to_portable
+        self.recent_files_manager.load_path = system.from_portable
         self.menu_recents = widgets.MenuRecentFiles(
             self.ui.menuFile, title='Recents',
             recent_files_manager=self.recent_files_manager,

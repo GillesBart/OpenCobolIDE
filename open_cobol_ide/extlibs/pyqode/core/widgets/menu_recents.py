@@ -18,6 +18,12 @@ class RecentFilesManager(QtCore.QObject):
     #: Maximum number of files kept in the list.
     max_recent_files = 15
     updated = QtCore.Signal()
+    #: Optional converters letting the application store paths in a portable
+    #: way (e.g. relative to the application folder). ``store_path`` is
+    #: applied before writing a path in the settings, ``load_path`` after
+    #: reading it.
+    store_path = staticmethod(lambda path: path)
+    load_path = staticmethod(lambda path: path)
 
     def __init__(self, organisation, application, qsettings=None):
         super(RecentFilesManager, self).__init__()
@@ -69,7 +75,7 @@ class RecentFilesManager(QtCore.QObject):
         # single file
         if isinstance(lst, str):
             lst = [lst]
-        return unique([os.path.normpath(pth) for pth in lst])
+        return unique([os.path.normpath(self.load_path(pth)) for pth in lst])
 
     def set_value(self, key, value):
         """
@@ -79,7 +85,7 @@ class RecentFilesManager(QtCore.QObject):
         """
         if value is None:
             value = []
-        value = [os.path.normpath(pth) for pth in value]
+        value = [self.store_path(os.path.normpath(pth)) for pth in value]
         self._settings.setValue('recent_files/%s' % key, value)
 
     def get_recent_files(self):
