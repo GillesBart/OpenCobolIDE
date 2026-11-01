@@ -11,7 +11,6 @@ import mimetypes
 import os
 import sys
 from pyqode.qt import QtCore, QtWidgets, QT_API, PYQT5_API, PYSIDE_API
-import qcrash.api as qcrash
 
 from open_cobol_ide import __version__, logger, system
 from open_cobol_ide.controllers import (
@@ -32,9 +31,6 @@ def _logger():
 _original_env = os.environ.copy()
 
 
-QCRASH_GH_OWNER = 'OpenCobolIDE'
-QCRASH_GH_REPO = 'OpenCobolIDE'
-QCRASH_EMAIL = 'colin.duquesnoy@gmail.com'
 
 
 class Application(QtCore.QObject):
@@ -56,13 +52,7 @@ class Application(QtCore.QObject):
         self.app = QtWidgets.QApplication(sys.argv)
 
         self._reported_tracebacks = []
-        qcrash.get_system_information = system.get_system_infos
-        qcrash.get_application_log = logger.get_application_log
-        qcrash.install_backend(
-            qcrash.backends.GithubBackend(QCRASH_GH_OWNER, QCRASH_GH_REPO),
-            qcrash.backends.EmailBackend(QCRASH_EMAIL, 'OpenCobolIDE'))
-        qcrash.set_qsettings(Settings()._settings)
-        qcrash.install_except_hook(except_hook=self._report_exception)
+        sys.excepthook = self._except_hook
         # if hasattr(sys, 'frozen') and sys.platform == 'win32':
         #     sys.stdout = open(os.path.join(system.get_cache_directory(),
         #                                    'ocide_stdout.log'), 'w')
@@ -101,7 +91,7 @@ class Application(QtCore.QObject):
                 'compile...'
             if system.windows:
                 msg += '\n\nTip: Ensure that there is no additional ' \
-                    'installation of MinGW in %s:\MinGW' % sys.executable[0]
+                    'installation of MinGW in %s:\\MinGW' % sys.executable[0]
             QtWidgets.QMessageBox.warning(
                 self.win, 'COBOL compiler not found or not working', msg)
         else:
@@ -268,6 +258,13 @@ class Application(QtCore.QObject):
         # the main gui thread.
         self._report_exception_requested.emit(exc_val, tb)
 
+    def _except_hook(self, exc_type, exc, tb):
+        """
+        Logs unhandled exceptions and shows them to the user.
+        """
+        self._report_exception(
+            exc, ''.join(traceback.format_exception(exc_type, exc, tb)))
+
     def _report_exception(self, exc, tb):
         try:
             _logger().critical('unhandled exception:\n%s', tb)
@@ -280,17 +277,7 @@ class Application(QtCore.QObject):
                 return
             self._reported_tracebacks.append(_tb)
             title = '[Unhandled exception] %s' % exc.__class__.__name__
-            description = 'An unhandled exception has occured:\n\n'\
-                          '%s\n\nWould you like to send a bug report to the ' \
-                          'development team?' % tb
-            answer = QtWidgets.QMessageBox.critical(
-                self.win, title, description,
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.Yes)
-            if answer == QtWidgets.QMessageBox.Yes:
-                qcrash.show_report_dialog(
-                    parent=self.win, window_icon=self.win.windowIcon(),
-                    window_title="Report unhandled exception",
-                    issue_title=title, traceback=tb)
+            description = 'An unhandled exception has occured:\n\n%s' % tb
+            QtWidgets.QMessageBox.critical(self.win, title, description)
         except Exception:
             _logger().exception('exception in excepthook')

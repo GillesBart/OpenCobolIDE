@@ -819,16 +819,16 @@ class EsqlOCCompiler(QtCore.QObject):
     esqlOC.exe -static -o file.cob file.sqb
 
     GnuCOBOL Commands:
-    SET OC_RUNTIME=c:\OpenCobol_bin
-    SET esqlOC_RUNTIME=c:\esqlOC\release
+    SET OC_RUNTIME=c:\\OpenCobol_bin
+    SET esqlOC_RUNTIME=c:\\esqlOC\\release
     SET COB_CFLAGS=-I %OC_RUNTIME%
     SET COB_LIBS=
-      %OC_RUNTIME%\libcob.lib %OC_RUNTIME%\mpir.lib %esqlOC_RUNTIME%\ocsql.lib
+      %OC_RUNTIME%\\libcob.lib %OC_RUNTIME%\\mpir.lib %esqlOC_RUNTIME%\\ocsql.lib
     SET COB_CONFIG_DIR=
-      %OC_RUNTIME%\config\ set PATH=C:\WINDOWS\system32;%OC_RUNTIME%
-    call "%PROGRAMFILES%\Microsoft Visual Studio 10.0\VC\vcvarsall.bat"
-    %OC_RUNTIME%\cobc.exe -fixed -v -x -static -o c:\Temp\esqlOCGetStart1.exe
-      c:\Temp\esqlOCGetStart1.cob
+      %OC_RUNTIME%\\config\\ set PATH=C:\\WINDOWS\\system32;%OC_RUNTIME%
+    call "%PROGRAMFILES%\\Microsoft Visual Studio 10.0\\VC\\vcvarsall.bat"
+    %OC_RUNTIME%\\cobc.exe -fixed -v -x -static -o c:\\Temp\\esqlOCGetStart1.exe
+      c:\\Temp\\esqlOCGetStart1.cob
     """
     #: signal emitted when the compilation process started, parameter
     #: is the command

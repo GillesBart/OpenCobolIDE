@@ -41,7 +41,7 @@ class DlgCheckCompiler(QtWidgets.QDialog):
                 self.ui.plainTextEdit.appendPlainText(
                     '- If you see MinGW related errors ensure that there is no'
                     ' additional installation of MinGW in '
-                    '%s:\MinGW' % sys.executable[0])
+                    '%s:\\MinGW' % sys.executable[0])
 
         GnuCobolCompiler.check_compiler.reset()
 

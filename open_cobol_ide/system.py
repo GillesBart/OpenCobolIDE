@@ -15,10 +15,13 @@ from pyqode.qt import QtCore, QtGui
 windows = platform.system() == 'Windows'
 darwin = platform.system() == 'Darwin'
 linux = platform.system() == 'Linux'
+ubuntu = False
 if linux:
-    ubuntu = platform.linux_distribution()[0].lower() == 'ubuntu'
-else:
-    ubuntu = False
+    try:
+        ubuntu = platform.freedesktop_os_release().get(
+            'ID', '').lower() == 'ubuntu'
+    except (AttributeError, OSError):
+        pass
 
 
 def _mkdir(func):

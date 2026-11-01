@@ -71,25 +71,12 @@ print('pygment lexers', pygments_lexers)
 
 # build options
 options = {
-    'namespace_packages': ['pyqode'],
     'include_msvcr': True,
+    # pyqode is a namespace package bundled in open_cobol_ide/extlibs
+    'packages': ['pyqode', 'pyqode.core', 'pyqode.cobol', 'pyqode.qt'],
     # freeze the pygments default style along with our executable
-    'includes': [
-        'pkg_resources',
-        'keyring.backends.kwallet',
-        'keyring.backends.OS_X',
-        'keyring.backends.SecretService',
-        'keyring.backends.Windows',
-        'six',
-        'packaging',
-        'packaging.markers',
-        'packaging.specifiers',
-        'packaging.version',
-        'packaging.version',
-        'packaging._compat',
-        'packaging._structures',
-        'packaging.__about__',
-    ] + pygments_styles + pygments_lexers
+    'includes': ['pkg_resources', 'six', 'packaging'] +
+                pygments_styles + pygments_lexers
 }
 
 if windows:
@@ -122,12 +109,13 @@ if windows:
             os.path.dirname(PyQt5.__file__), 'libEGL.dll'), build_dir)
     except (ImportError, RuntimeError):
         pass  # using pyqt4, there is nothing to do
-    print('Signing our binaries\n'
-          '#####################################################################')
-    for executable in ['OpenCobolIDE.exe', 'cobol-backend.exe', 'core-backend.exe',
-                       'pyqode-console.exe']:
-        path = os.path.join(build_dir, executable)
-        os.system('c:\DigiCertUtil.exe sign /noInput %s' % path)
+    if os.path.exists(r'c:\DigiCertUtil.exe'):
+        print('Signing our binaries\n'
+              '#################################################################')
+        for executable in ['OpenCobolIDE.exe', 'cobol-backend.exe',
+                           'core-backend.exe', 'pyqode-console.exe']:
+            path = os.path.join(build_dir, executable)
+            os.system(r'c:\DigiCertUtil.exe sign /noInput %s' % path)
     print(
         '### Copying OpenCobol distribution\n'
         '#####################################################################'
@@ -153,5 +141,9 @@ if windows:
         dst.writelines(data)
     # if not in PATH, inno setup is usually located in
     # C:\Program Files (x86)\Inno Setup 5 on Windows
-    os.environ['PATH'] += ';C:\Program Files (x86)\Inno Setup 5'
-    os.system('iscc %s' % os.path.join(os.getcwd(), 'setup.iss'))
+    os.environ['PATH'] += r';C:\Program Files (x86)\Inno Setup 5'
+    if shutil.which('iscc'):
+        os.system('iscc %s' % os.path.join(os.getcwd(), 'setup.iss'))
+    else:
+        print('Inno Setup not found: skipping installer creation '
+              '(the portable build is in %s)' % build_dir)
