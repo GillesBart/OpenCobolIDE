@@ -3,7 +3,6 @@ This module contains the ide application. This is where we glue the
 various managers and gui parts together.
 
 """
-import pickle
 import traceback
 import argparse
 import logging
@@ -199,8 +198,7 @@ class Application(QtCore.QObject):
         # import preferences
         if args.conf:
             try:
-                with open(args.conf, 'rb') as f:
-                    Settings().import_from_dict(pickle.load(f))
+                Settings().import_from_json(args.conf)
             except (ValueError, IOError, OSError):
                 _logger().exception('failed to restore preferences from %r',
                                     args.conf)

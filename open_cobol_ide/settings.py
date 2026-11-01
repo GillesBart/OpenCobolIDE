@@ -2,6 +2,7 @@
 This module contains a class for accessing the application settings.
 """
 import logging
+import base64
 import json
 import os
 import sys
@@ -41,6 +42,65 @@ class Settings(object):
         """
         for k, v in dic.items():
             self._settings.setValue(k, v)
+
+    # JSON import / export of the preferences
+    # ------------------------------------------------------------------------
+    # window geometry/state are binary and specific to a screen: not exported
+    _JSON_SKIP = ('mainWindowGeometry', 'mainWindowState')
+
+    @staticmethod
+    def _to_json(v):
+        if isinstance(v, QtCore.QByteArray):
+            v = bytes(v)
+        if isinstance(v, (bytes, bytearray)):
+            return {'__bytes__': base64.b64encode(bytes(v)).decode('ascii')}
+        if isinstance(v, QtCore.QSize):
+            return {'__size__': [v.width(), v.height()]}
+        if isinstance(v, QtCore.QPoint):
+            return {'__point__': [v.x(), v.y()]}
+        if isinstance(v, (list, tuple)):
+            return [Settings._to_json(i) for i in v]
+        if v is None or isinstance(v, (str, int, float, bool)):
+            return v
+        return str(v)
+
+    @staticmethod
+    def _from_json(v):
+        if isinstance(v, dict):
+            if '__bytes__' in v:
+                return QtCore.QByteArray(base64.b64decode(v['__bytes__']))
+            if '__size__' in v:
+                return QtCore.QSize(*v['__size__'])
+            if '__point__' in v:
+                return QtCore.QPoint(*v['__point__'])
+            raise ValueError('unsupported value: %r' % (v,))
+        if isinstance(v, list):
+            return [Settings._from_json(i) for i in v]
+        return v
+
+    def export_to_json(self, path):
+        """
+        Exports the preferences to a readable UTF-8 json file.
+        """
+        data = {}
+        for k, v in self.export_to_dict().items():
+            if k not in self._JSON_SKIP:
+                data[k] = self._to_json(v)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False, sort_keys=True)
+            f.write('\n')
+
+    def import_from_json(self, path):
+        """
+        Imports the preferences from a json file (ValueError if invalid).
+        """
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            raise ValueError('not a preferences file')
+        self.import_from_dict(
+            {k: self._from_json(v) for k, v in data.items()
+             if k not in self._JSON_SKIP})
 
     # Geometry and state (visible windows, ...) + working settings (last path)
     # ------------------------------------------------------------------------

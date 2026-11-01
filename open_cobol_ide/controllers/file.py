@@ -2,7 +2,6 @@
 This module contains the FileController.
 
 """
-import pickle
 import logging
 import os
 from pyqode.core import widgets
@@ -175,11 +174,11 @@ class FileController(Controller):
         """
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self.main_window, 'Import preferences',
-            os.path.join(os.path.expanduser('~'), 'ocide_preferences.dat'))
+            os.path.join(os.path.expanduser('~'), 'ocide_preferences.json'),
+            'Preferences (*.json);;All files (*)')
         if path:
             try:
-                with open(path, 'rb') as f:
-                    Settings().import_from_dict(pickle.load(f))
+                Settings().import_from_json(path)
             except (ValueError, IOError, OSError):
                 _logger().exception('failed to import preferences')
                 QtWidgets.QMessageBox.information(
@@ -197,11 +196,11 @@ class FileController(Controller):
         """
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self.main_window, "Export preferences",
-            os.path.join(os.path.expanduser('~'), 'ocide_preferences.dat'))
+            os.path.join(os.path.expanduser('~'), 'ocide_preferences.json'),
+            'Preferences (*.json);;All files (*)')
         if path:
             try:
-                with open(path, 'wb') as f:
-                    pickle.dump(Settings().export_to_dict(), f)
+                Settings().export_to_json(path)
             except (ValueError, IOError, OSError):
                 _logger().exception('failed to export preferences')
                 QtWidgets.QMessageBox.information(
