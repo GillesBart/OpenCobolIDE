@@ -183,7 +183,7 @@ def to_portable(path):
     if not path:
         return path
     path = str(path)
-    if path.startswith(APP_TAG):
+    if path.startswith(APP_TAG) or not os.path.isabs(path):
         return path
     root = os.path.abspath(app_dir())
     full = os.path.abspath(path)

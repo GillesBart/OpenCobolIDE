@@ -129,10 +129,9 @@ class Settings(object):
         """
         Returns the last used open/save path
         """
-        default_value = ''
-        if sys.platform == 'win32':
-            default_value = 'c:\\'
-        return self._settings.value('lastUsedPath', default_value)
+        default_value = system.app_dir()
+        return system.from_portable(
+            self._settings.value('lastUsedPath', default_value))
 
     @last_path.setter
     def last_path(self, path):
@@ -142,7 +141,8 @@ class Settings(object):
         :param path: path string
         :type path: str or unicode
         """
-        self._settings.setValue('lastUsedPath', os.path.dirname(path))
+        self._settings.setValue('lastUsedPath',
+                                system.to_portable(os.path.dirname(path)))
 
     @property
     def perspective(self):
@@ -377,11 +377,13 @@ class Settings(object):
 
     @property
     def working_dir(self):
-        return self._settings.value('workingDirectory', '')
+        return system.from_portable(
+            self._settings.value('workingDirectory', ''))
 
     @working_dir.setter
     def working_dir(self, value):
-        self._settings.setValue('workingDirectory', str(value))
+        self._settings.setValue('workingDirectory',
+                                system.to_portable(str(value)))
 
     # Compiler settings
     # ----------------------
@@ -395,11 +397,12 @@ class Settings(object):
 
     @property
     def output_directory(self):
-        return self._settings.value('outputDirectory', 'bin')
+        return system.from_portable(
+            self._settings.value('outputDirectory', 'bin'))
 
     @output_directory.setter
     def output_directory(self, value):
-        self._settings.setValue('outputDirectory', value)
+        self._settings.setValue('outputDirectory', system.to_portable(value))
 
     @staticmethod
     def default_compiler_path():
@@ -585,11 +588,13 @@ class Settings(object):
 
     @property
     def lock_fs_path(self):
-        return str(self._settings.value('lock_fs_path', ''))
+        return str(system.from_portable(
+            self._settings.value('lock_fs_path', '')))
 
     @lock_fs_path.setter
     def lock_fs_path(self, value):
-        self._settings.setValue('lock_fs_path', str(value))
+        self._settings.setValue('lock_fs_path',
+                                system.to_portable(str(value)))
 
     # SQL Cobol Settings
     # ----------------------
@@ -624,27 +629,28 @@ class Settings(object):
 
     @property
     def dbpre(self):
-        return self._settings.value('dbpre', '')
+        return system.from_portable(self._settings.value('dbpre', ''))
 
     @dbpre.setter
     def dbpre(self, path):
-        self._settings.setValue('dbpre', path)
+        self._settings.setValue('dbpre', system.to_portable(path))
 
     @property
     def cobmysqlapi(self):
-        return self._settings.value('cobmysqlapi', '')
+        return system.from_portable(self._settings.value('cobmysqlapi', ''))
 
     @cobmysqlapi.setter
     def cobmysqlapi(self, path):
-        self._settings.setValue('cobmysqlapi', path)
+        self._settings.setValue('cobmysqlapi', system.to_portable(path))
 
     @property
     def dbpre_framework(self):
-        return self._settings.value('dbpre_framework', '')
+        return system.from_portable(
+            self._settings.value('dbpre_framework', ''))
 
     @dbpre_framework.setter
     def dbpre_framework(self, path):
-        self._settings.setValue('dbpre_framework', path)
+        self._settings.setValue('dbpre_framework', system.to_portable(path))
 
     @property
     def dbhost(self):
@@ -890,11 +896,15 @@ class Settings(object):
 
     @property
     def run_environemnt(self):
-        return json.loads(self._settings.value('run_env', '{}'))
+        env = json.loads(self._settings.value('run_env', '{}'))
+        return {k: system.from_portable_list(v) if isinstance(v, str) else v
+                for k, v in env.items()}
 
     @run_environemnt.setter
     def run_environemnt(self, dic):
-        self._settings.setValue('run_env', json.dumps(dic))
+        self._settings.setValue('run_env', json.dumps(
+            {k: system.to_portable_list(v) if isinstance(v, str) else v
+             for k, v in dic.items()}))
 
     @property
     def copy_runtime_dlls(self):
