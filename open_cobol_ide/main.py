@@ -19,6 +19,16 @@ def override_sys_path():
     import pyqode.core
 
 
+def setup_portable_settings():
+    """
+    Tells the whole application (and pyqode, which runs in the same process
+    and in the backend) to keep its settings in <app>/data (.ini files)
+    instead of the Windows registry.
+    """
+    from open_cobol_ide import system
+    os.environ['OCIDE_DATA_DIR'] = system.data_dir()
+
+
 def main():
     """
     Application entry point.
@@ -30,6 +40,7 @@ def main():
     from open_cobol_ide import system
     from open_cobol_ide.app import Application
     from open_cobol_ide.settings import Settings
+    setup_portable_settings()
     app = Application()
     if system.linux:
         QtGui.QIcon.setThemeName(Settings().icon_theme)

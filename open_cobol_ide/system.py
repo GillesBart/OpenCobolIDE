@@ -9,7 +9,7 @@ import platform
 import shlex
 import sys
 
-from pyqode.qt import QtGui
+from pyqode.qt import QtCore, QtGui
 
 
 windows = platform.system() == 'Windows'
@@ -107,17 +107,11 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None,
 @_mkdir
 def get_cache_directory():
     """
-    Gets the platform specific cache directory (where we store the log file and
-    the temporary files create by the linter).
-    :return: platform specific cache directory.
+    Gets the cache directory (log file and temporary files created by the
+    linter). Portable fork: always next to the application.
+    :return: cache directory.
     """
-    if windows:
-        return os.path.join(os.path.expanduser("~"), 'OpenCobolIDE', 'cache')
-    elif darwin:
-        return os.path.join(os.path.expanduser("~"), 'Library',
-                            'Caches', 'OpenCobolIDE')
-    else:
-        return os.path.join(os.path.expanduser("~"), '.cache', '.OpenCobolIDE')
+    return os.path.join(data_dir(), 'cache')
 
 
 def icon_themes():
@@ -139,6 +133,82 @@ def icon_themes():
                 if 'cursors' not in files and 'index.theme' in files:
                     themes.append(d)
     return sorted(list(set(themes)))
+
+
+# ---------------------------------------------------------------------------
+# Portable mode helpers
+# ---------------------------------------------------------------------------
+APP_TAG = '@APP@/'
+
+
+def app_dir():
+    """
+    Root folder of the application: the folder of the executable when frozen,
+    the repository root when running from sources.
+    """
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def data_dir():
+    """
+    Folder holding everything the IDE writes (settings .ini, cache, logs).
+    Lives next to the application so that the whole folder can be moved.
+    """
+    path = os.path.join(app_dir(), 'data')
+    try:
+        os.makedirs(path)
+    except OSError:
+        pass
+    return path
+
+
+def make_settings(name):
+    """
+    Creates a QSettings backed by <app>/data/<name>.ini (never the registry).
+    """
+    return QtCore.QSettings(os.path.join(data_dir(), name + '.ini'),
+                            QtCore.QSettings.IniFormat)
+
+
+def to_portable(path):
+    """
+    Returns ``@APP@/relative/path`` if *path* is located inside app_dir(),
+    otherwise *path* unchanged.
+    """
+    if not path:
+        return path
+    path = str(path)
+    if path.startswith(APP_TAG):
+        return path
+    root = os.path.abspath(app_dir())
+    full = os.path.abspath(path)
+    try:
+        if os.path.normcase(os.path.commonpath([root, full])) == \
+                os.path.normcase(root):
+            return APP_TAG + os.path.relpath(full, root).replace('\\', '/')
+    except ValueError:
+        pass  # different drives
+    return path
+
+
+def from_portable(path):
+    """
+    Inverse of to_portable: resolves ``@APP@/...`` against app_dir().
+    """
+    if path and str(path).startswith(APP_TAG):
+        return os.path.normpath(
+            os.path.join(app_dir(), str(path)[len(APP_TAG):]))
+    return path
+
+
+def to_portable_list(value, sep=os.pathsep):
+    return sep.join(to_portable(p) for p in str(value).split(sep) if p)
+
+
+def from_portable_list(value, sep=os.pathsep):
+    return sep.join(from_portable(p) for p in str(value).split(sep) if p)
 
 
 def normpath(path):

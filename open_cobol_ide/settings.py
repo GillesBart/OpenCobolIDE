@@ -17,7 +17,7 @@ class Settings(object):
     settings (thought getter/setter properties).
     """
     def __init__(self):
-        self._settings = QSettings('OpenCobolIDE', 'OpenCobolIDE4')
+        self._settings = system.make_settings('OpenCobolIDE4')
 
     def clear(self):
         """
@@ -408,11 +408,11 @@ class Settings(object):
             # compiler on windows
             if getattr(sys, 'frozen', False):
                 # The application is frozen
-                cwd = os.path.dirname(sys.executable)
-                default = os.path.join(cwd, 'GnuCOBOL', 'bin', 'cobc.exe')
+                default = os.path.join(system.app_dir(), 'GnuCOBOL', 'bin',
+                                       'cobc.exe')
             else:
-                cwd = os.getcwd()
-                default = os.path.join(cwd, 'GnuCOBOL-Win32-MinGW', 'bin',
+                default = os.path.join(system.app_dir(),
+                                       'GnuCOBOL-Win32-MinGW', 'bin',
                                        'cobc.exe')
         else:
             default = system.which('cobc', include_settings_path=False)
@@ -422,7 +422,7 @@ class Settings(object):
     def compiler_path(self):
         default = 'cobc.exe' if system.windows else 'cobc'
         path = self._settings.value('compilerPath', default)
-        return system.normpath(path)
+        return system.normpath(system.from_portable(path))
 
     @compiler_path.setter
     def compiler_path(self, value):
@@ -430,7 +430,7 @@ class Settings(object):
         if value:
             sep = ';' if sys.platform == 'win32' else ':'
             os.environ['PATH'] += sep + os.path.dirname(value)
-        self._settings.setValue('compilerPath', value)
+        self._settings.setValue('compilerPath', system.to_portable(value))
 
     @property
     def full_compiler_path(self):
@@ -472,19 +472,23 @@ class Settings(object):
 
     @property
     def copybook_paths(self):
-        return self._settings.value('copybook_paths', '')
+        return system.from_portable_list(
+            self._settings.value('copybook_paths', ''), ';')
 
     @copybook_paths.setter
     def copybook_paths(self, value):
-        self._settings.setValue('copybook_paths', value)
+        self._settings.setValue('copybook_paths',
+                                system.to_portable_list(value, ';'))
 
     @property
     def library_search_path(self):
-        return self._settings.value('library_search_path', '')
+        return system.from_portable_list(
+            self._settings.value('library_search_path', ''), ';')
 
     @library_search_path.setter
     def library_search_path(self, value):
-        self._settings.setValue('library_search_path', value)
+        self._settings.setValue('library_search_path',
+                                system.to_portable_list(value, ';'))
 
     @property
     def libraries(self):
@@ -584,11 +588,12 @@ class Settings(object):
     # ----------------------
     @property
     def esqloc(self):
-        return system.normpath(self._settings.value('esqloc', ''))
+        return system.normpath(
+            system.from_portable(self._settings.value('esqloc', '')))
 
     @esqloc.setter
     def esqloc(self, value):
-        self._settings.setValue('esqloc', value)
+        self._settings.setValue('esqloc', system.to_portable(value))
 
     @property
     def esqloc_extensions(self):
@@ -701,7 +706,8 @@ class Settings(object):
     # ------------
     @property
     def path(self):
-        pth = self._settings.value('environment/PATH', self.default_path())
+        pth = system.from_portable_list(
+            self._settings.value('environment/PATH', self.default_path()))
         paths = []
         for p in pth.split(os.pathsep):
             p = system.normpath(p)
@@ -712,7 +718,8 @@ class Settings(object):
 
     @path.setter
     def path(self, value):
-        self._settings.setValue('environment/PATH', value)
+        self._settings.setValue('environment/PATH',
+                                system.to_portable_list(value))
 
     @property
     def path_enabled(self):
@@ -739,11 +746,12 @@ class Settings(object):
     def cob_config_dir(self):
         default = self.default_config_dir()
         value = self._settings.value('environment/COB_CONFIG_DIR', default)
-        return system.normpath(value)
+        return system.normpath(system.from_portable(value))
 
     @cob_config_dir.setter
     def cob_config_dir(self, value):
-        self._settings.setValue('environment/COB_CONFIG_DIR', value)
+        self._settings.setValue('environment/COB_CONFIG_DIR',
+                                system.to_portable(value))
 
     @property
     def cob_config_dir_enabled(self):
@@ -772,11 +780,12 @@ class Settings(object):
     def cob_copy_dir(self):
         default = self.default_copy_dir()
         value = self._settings.value('environment/COB_COPY_DIR', default)
-        return system.normpath(value)
+        return system.normpath(system.from_portable(value))
 
     @cob_copy_dir.setter
     def cob_copy_dir(self, value):
-        self._settings.setValue('environment/COB_COPY_DIR', value)
+        self._settings.setValue('environment/COB_COPY_DIR',
+                                system.to_portable(value))
 
     @property
     def cob_copy_dir_enabled(self):
@@ -804,11 +813,12 @@ class Settings(object):
     def cob_include_path(self):
         default = self.default_include_dir()
         value = self._settings.value('environment/COB_INCLUDE_PATH', default)
-        return system.normpath(value)
+        return system.normpath(system.from_portable(value))
 
     @cob_include_path.setter
     def cob_include_path(self, value):
-        self._settings.setValue('environment/COB_INCLUDE_PATH', value)
+        self._settings.setValue('environment/COB_INCLUDE_PATH',
+                                system.to_portable(value))
 
     @property
     def cob_include_path_enabled(self):
@@ -837,11 +847,12 @@ class Settings(object):
     def cob_lib_path(self):
         default = self.default_lib_path()
         value = self._settings.value('environment/COB_LIB_PATH', default)
-        return system.normpath(value)
+        return system.normpath(system.from_portable(value))
 
     @cob_lib_path.setter
     def cob_lib_path(self, value):
-        self._settings.setValue('environment/COB_LIB_PATH', value)
+        self._settings.setValue('environment/COB_LIB_PATH',
+                                system.to_portable(value))
 
     @property
     def cob_lib_path_enabled(self):

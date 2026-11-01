@@ -36,7 +36,8 @@ class FileController(Controller):
     def __init__(self, app):
         super().__init__(app)
         self.recent_files_manager = widgets.RecentFilesManager(
-            'OpenCobolIDE', 'OpenCobolIDE4')
+            'OpenCobolIDE', 'OpenCobolIDE4',
+            qsettings=system.make_settings('OpenCobolIDE4'))
         self.menu_recents = widgets.MenuRecentFiles(
             self.ui.menuFile, title='Recents',
             recent_files_manager=self.recent_files_manager,

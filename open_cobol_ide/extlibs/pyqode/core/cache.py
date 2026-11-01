@@ -19,6 +19,7 @@ better handled at the application level.
 """
 import json
 import locale
+import os
 import logging
 from pyqode.qt import QtCore
 
@@ -37,7 +38,15 @@ class Cache(object):
     """
     def __init__(self, suffix='', qsettings=None):
         if qsettings is None:
-            self._settings = QtCore.QSettings('pyQode', 'pyqode.core%s' % suffix)
+            data_dir = os.environ.get('OCIDE_DATA_DIR')
+            if data_dir:
+                # portable fork: .ini next to the application
+                self._settings = QtCore.QSettings(
+                    os.path.join(data_dir, 'pyqode.core%s.ini' % suffix),
+                    QtCore.QSettings.IniFormat)
+            else:
+                self._settings = QtCore.QSettings(
+                    'pyQode', 'pyqode.core%s' % suffix)
         else:
             self._settings = qsettings
 
