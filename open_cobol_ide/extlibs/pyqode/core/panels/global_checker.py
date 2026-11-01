@@ -101,6 +101,9 @@ class GlobalCheckerPanel(Panel):
 
     def mousePressEvent(self, event):
         # Moves the editor text cursor to the clicked line.
-        height = event.pos().y()
-        line = height // self.get_marker_height()
-        TextHelper(self.editor).goto_line(line)
+        helper = TextHelper(self.editor)
+        marker_height = self.get_marker_height()
+        line = int(event.pos().y() // marker_height) if marker_height else 0
+        # a block number must be an int, and inside the document
+        line = max(0, min(line, helper.line_count() - 1))
+        helper.goto_line(line)
