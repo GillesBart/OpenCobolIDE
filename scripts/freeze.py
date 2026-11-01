@@ -93,7 +93,7 @@ setup(name=app_name,
           Executable(app_script,
                      target_name=app_exe,
                      icon=app_icon if windows else None,
-                     base='Win32GUI' if windows else None),
+                     base='gui' if windows else None),
           Executable(console_script, target_name=console_exe),
           Executable(srv_script, target_name=srv_exe),
           Executable(core_srv_script, target_name=core_srv_exe)
