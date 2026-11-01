@@ -101,13 +101,18 @@ setup(name=app_name,
 
 if windows:
     build_dir = os.path.join(os.getcwd(), glob.glob('build/*')[0])
-    # cx_freeze is missing libEGL.dll, copy it ourself
+    # cx_freeze may miss libEGL.dll, copy it ourself when we can find it
+    # (recent PyQt5 wheels keep it in PyQt5/Qt5/bin instead of PyQt5/)
     try:
         import PyQt5
-        shutil.copy(os.path.join(
-            os.path.dirname(PyQt5.__file__), 'libEGL.dll'), build_dir)
+        qt_dir = os.path.dirname(PyQt5.__file__)
+        for folder in (qt_dir, os.path.join(qt_dir, 'Qt5', 'bin')):
+            egl = os.path.join(folder, 'libEGL.dll')
+            if os.path.exists(egl):
+                shutil.copy(egl, build_dir)
+                break
     except (ImportError, RuntimeError):
-        pass  # using pyqt4, there is nothing to do
+        pass  # nothing to do
     if os.path.exists(r'c:\DigiCertUtil.exe'):
         print('Signing our binaries\n'
               '#################################################################')
