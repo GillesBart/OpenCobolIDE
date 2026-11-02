@@ -2,6 +2,7 @@ from pyqode.qt import QtGui
 from pyqode.core.api import ColorScheme
 from .cobol import CobolCodeEdit
 from .generic import GenericCodeEdit
+from .python import PythonCodeEdit
 from .text import TextEdit
 
 
@@ -15,6 +16,10 @@ def update_editor_settings(editor):
     editor.show_whitespaces = settings.show_whitespaces
     editor.syntax_highlighter.color_scheme = ColorScheme(settings.color_scheme)
     editor.panels.get('FoldingPanel').native_look = not settings.dark_style
+    if hasattr(editor, 'apply_ide_settings'):
+        # editeur qui applique lui-même ses préférences (Python)
+        editor.apply_ide_settings(settings)
+        return
     try:
         # cobol editor specific settings
         editor.backspace_mode.enabled = settings.enable_smart_backspace

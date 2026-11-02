@@ -21,6 +21,7 @@ from open_cobol_ide.compilers import check_compiler, CompilerNotFound, \
     GnuCobolCompiler
 from open_cobol_ide.settings import Settings
 from open_cobol_ide.view.main_window import MainWindow
+from open_cobol_ide.view.editors import PythonCodeEdit
 from open_cobol_ide.view.dialogs.about import DlgAbout
 
 
@@ -44,6 +45,9 @@ class Application(QtCore.QObject):
         for ext in Settings().all_extensions:
             mimetypes.add_type('text/x-cobol', ext)
             mimetypes.add_type('text/x-cobol', ext.upper())
+        # le registre Windows peut donner un autre type aux .py
+        for ext in PythonCodeEdit.extensions:
+            mimetypes.add_type('text/x-python', ext)
 
     def __init__(self, parse_args=True):
         super().__init__()

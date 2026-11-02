@@ -102,7 +102,8 @@ class FileController(Controller):
         paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self.main_window, tr('Open a file'), directory=Settings().last_path,
             filter=widgets.splittable_tab_widget.CodeEditTabWidget.get_filter(
-                'text/x-cobol') + tr(';;Other files (*)'))
+                'text/x-cobol') + ';;' + tr('Python files') +
+                ' (*.py *.pyw *.pyi)' + tr(';;Other files (*)'))
         if paths:
             for path in paths:
                 self.open_file(path)

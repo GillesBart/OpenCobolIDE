@@ -86,6 +86,7 @@
   "Failed to restore preferences. See the log for more information...": "Impossible de restaurer les préférences. Consultez le journal pour plus d’informations...",
   "Export preferences failure": "Échec de l’export des préférences",
   "Failed to export preferences. See the log for more information...": "Impossible d’exporter les préférences. Consultez le journal pour plus d’informations...",
+  "Python files": "Fichiers Python",
   "Restory factory defaults?": "Restaurer les valeurs par défaut ?",
   "Are you sure you want to restore factory defaults?\n\nClicking yes will remove all your preferences and restart the IDE with clean settings. Use this only if you're experiencing a problem!": "Voulez-vous vraiment restaurer les valeurs par défaut ?\n\nCliquer sur Oui supprimera toutes vos préférences et redémarrera l’EDI avec des réglages vierges. À n’utiliser qu’en cas de problème !",
   "Comment/Uncomment": "Commenter/décommenter",

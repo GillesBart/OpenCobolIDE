@@ -13,6 +13,7 @@ from open_cobol_ide.enums import FileType
 from ..view.dialogs.preferences import DlgPreferences
 from ..settings import Settings
 from ..view.editors import CobolCodeEdit, GenericCodeEdit, TextEdit, \
+    PythonCodeEdit, \
     update_editor_settings
 from ..view.widgets import FSContextMenu
 
@@ -26,7 +27,7 @@ class EditController(Controller):
     Controls the edit view (and the edit menu).
     """
     #: the list of supported editor types
-    editor_types = [CobolCodeEdit, GenericCodeEdit, TextEdit]
+    editor_types = [CobolCodeEdit, PythonCodeEdit, GenericCodeEdit, TextEdit]
 
     @property
     def current_editor(self):
