@@ -129,6 +129,13 @@ if windows:
         shutil.copytree(os.path.join(os.getcwd(), 'GnuCOBOL-Win32-MinGW'),
                         os.path.join(build_dir, 'GnuCOBOL'))
 
+    # translations (read at run time by open_cobol_ide.translation)
+    tr_dir = os.path.join(build_dir, 'translations')
+    if not os.path.exists(tr_dir):
+        shutil.copytree(
+            os.path.join(os.getcwd(), 'open_cobol_ide', 'translations'),
+            tr_dir)
+
     print(
         '\n### Creating windows installer using Inno Setup\n'
         '#####################################################################'

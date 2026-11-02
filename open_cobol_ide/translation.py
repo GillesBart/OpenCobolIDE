@@ -1,6 +1,7 @@
 """
 Interface en français : traducteur Qt qui lit translations/fr.json.
 """
+import gettext
 import json
 import logging
 import os
@@ -36,6 +37,20 @@ class JsonTranslator(QtCore.QTranslator):
         return None  # non traduit : Qt garde le texte anglais
 
 
+class JsonGettext(gettext.NullTranslations):
+    """Traductions gettext (_()) utilisées par pyqode."""
+
+    def __init__(self, table):
+        super().__init__()
+        self._table = table
+
+    def gettext(self, message):
+        return self._table.get(message) or message
+
+    def ngettext(self, singular, plural, n):
+        return self.gettext(singular if n == 1 else plural)
+
+
 def _find():
     here = os.path.dirname(os.path.abspath(__file__))
     for base in (system.app_dir(), here):
@@ -63,6 +78,10 @@ def install(app):
         tr = JsonTranslator(data, replace, app)
         app.installTranslator(tr)
         app._ocide_translator = tr  # garder une référence
+        gpath = os.path.join(os.path.dirname(path), 'fr_gettext.json')
+        if os.path.isfile(gpath):
+            with open(gpath, 'r', encoding='utf-8') as f:
+                JsonGettext(json.load(f)).install()
         _logger().info('french translation loaded from %s', path)
     except Exception:
         _logger().exception('failed to load the french translation')
