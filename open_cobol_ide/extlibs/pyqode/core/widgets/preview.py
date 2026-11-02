@@ -23,7 +23,7 @@ class HtmlPreviewWidget(QtWidgets.QTextEdit):
         try:
             self.setHtml(editor.to_html())
         except (TypeError, AttributeError):
-            self.setHtml('<center>No preview available...</center>')
+            self.setHtml(_('<center>No preview available...</center>'))
             self._editor = None
             self.hide_requested.emit()
         else:
@@ -54,5 +54,5 @@ class HtmlPreviewWidget(QtWidgets.QTextEdit):
             self.setTextCursor(c)
             self.verticalScrollBar().setValue(v)
         except (TypeError, AttributeError):
-            self.setHtml('<center>No preview available...</center>')
+            self.setHtml(_('<center>No preview available...</center>'))
             self.hide_requested.emit()

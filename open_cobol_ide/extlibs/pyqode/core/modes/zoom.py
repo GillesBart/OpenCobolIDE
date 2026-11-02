@@ -26,19 +26,19 @@ class ZoomMode(Mode):
             self.editor.mouse_wheel_activated.connect(
                 self._on_wheel_event)
             self.editor.key_pressed.connect(self._on_key_pressed)
-            self.mnu_zoom = QtWidgets.QMenu("Zoom")
+            self.mnu_zoom = QtWidgets.QMenu(_("Zoom"))
             a = self.mnu_zoom.addAction(QtGui.QIcon.fromTheme(
-                'zoom-in'), 'Zoom in')
+                'zoom-in'), _('Zoom in'))
             a.setShortcut('Ctrl++')
             a.triggered.connect(self.editor.zoom_in)
 
             a = self.mnu_zoom.addAction(QtGui.QIcon.fromTheme(
-                'zoom-out'), 'Zoom out')
+                'zoom-out'), _('Zoom out'))
             a.setShortcut('Ctrl+-')
             a.triggered.connect(self.editor.zoom_out)
 
             a = self.mnu_zoom.addAction(QtGui.QIcon.fromTheme(
-                'zoom-fit-best'), 'Reset zoom')
+                'zoom-fit-best'), _('Reset zoom'))
             a.setShortcut('Ctrl+0')
             a.triggered.connect(self.editor.reset_zoom)
 

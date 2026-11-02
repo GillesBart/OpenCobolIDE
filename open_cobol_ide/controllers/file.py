@@ -6,6 +6,7 @@ import logging
 import os
 from pyqode.core import widgets
 from pyqode.qt import QtGui, QtWidgets
+from open_cobol_ide.translation import tr
 from open_cobol_ide import system
 from open_cobol_ide.view.editors import CobolCodeEdit
 from open_cobol_ide.settings import Settings
@@ -99,9 +100,9 @@ class FileController(Controller):
         Prompts the user for a file to open and open it.
         """
         paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
-            self.main_window, 'Open a file', directory=Settings().last_path,
+            self.main_window, tr('Open a file'), directory=Settings().last_path,
             filter=widgets.splittable_tab_widget.CodeEditTabWidget.get_filter(
-                'text/x-cobol') + ';;Other files (*)')
+                'text/x-cobol') + tr(';;Other files (*)'))
         if paths:
             for path in paths:
                 self.open_file(path)
@@ -119,8 +120,8 @@ class FileController(Controller):
             is_unc = os.path.splitdrive(path)[0].startswith(('\\\\', '//'))
             if not self._warning_unc and is_unc:
                 answer = QtWidgets.QMessageBox.warning(
-                    self.main_window, 'UNC pathnames not fully supported',
-                    UNC_WARNING,
+                    self.main_window, tr('UNC pathnames not fully supported'),
+                    tr(UNC_WARNING),
                     QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                     QtWidgets.QMessageBox.No)
                 if answer == QtWidgets.QMessageBox.No:
@@ -135,7 +136,7 @@ class FileController(Controller):
             self.ui.tabWidgetEditors.save_current()
         except PermissionError as e:
             QtWidgets.QMessageBox.warning(
-                self.main_window, 'Failed to save file',
+                self.main_window, tr('Failed to save file'),
                 str(e))
 
     def save_as(self):
@@ -146,8 +147,8 @@ class FileController(Controller):
             fn = self.ui.tabWidgetEditors.save_current_as()
         except PermissionError:
             QtWidgets.QMessageBox.warning(
-                self.main_window, 'Failed to save file',
-                'Failed to save file, permission error...')
+                self.main_window, tr('Failed to save file'),
+                tr('Failed to save file, permission error...'))
         else:
             self.recent_files_manager.open_file(fn)
             Settings().last_path = fn
@@ -161,8 +162,8 @@ class FileController(Controller):
         Quits the application, but contrarily asks the user first.
         """
         if QtWidgets.QMessageBox.question(
-                self.main_window, 'Quit OpenCobolIDE?',
-                'Are you sure you want to quit OpenCobolIDE?',
+                self.main_window, tr('Quit OpenCobolIDE?'),
+                tr('Are you sure you want to quit OpenCobolIDE?'),
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                 QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             _logger().debug('quit action triggered')
@@ -173,41 +174,41 @@ class FileController(Controller):
         Import preferences from a json file.
         """
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self.main_window, 'Import preferences',
+            self.main_window, tr('Import preferences'),
             os.path.join(os.path.expanduser('~'), 'ocide_preferences.json'),
-            'Preferences (*.json);;All files (*)')
+            tr('Preferences (*.json);;All files (*)'))
         if path:
             try:
                 Settings().import_from_json(path)
             except (ValueError, IOError, OSError):
                 _logger().exception('failed to import preferences')
                 QtWidgets.QMessageBox.information(
-                    self.main_window, 'Import preferences failure',
-                    'Failed to restore preferences. See the log for more '
-                    'information...')
+                    self.main_window, tr('Import preferences failure'),
+                    tr('Failed to restore preferences. See the log for more '
+                    'information...'))
             else:
                 QtWidgets.QMessageBox.information(
-                    self.main_window, 'Preferences imported',
-                    'Preferences successfully imported!')
+                    self.main_window, tr('Preferences imported'),
+                    tr('Preferences successfully imported!'))
 
     def export_preferences(self):
         """
         Export preferences to a json file
         """
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self.main_window, "Export preferences",
+            self.main_window, tr("Export preferences"),
             os.path.join(os.path.expanduser('~'), 'ocide_preferences.json'),
-            'Preferences (*.json);;All files (*)')
+            tr('Preferences (*.json);;All files (*)'))
         if path:
             try:
                 Settings().export_to_json(path)
             except (ValueError, IOError, OSError):
                 _logger().exception('failed to export preferences')
                 QtWidgets.QMessageBox.information(
-                    self.main_window, 'Export preferences failure',
-                    'Failed to export preferences. See the log for more '
-                    'information...')
+                    self.main_window, tr('Export preferences failure'),
+                    tr('Failed to export preferences. See the log for more '
+                    'information...'))
             else:
                 QtWidgets.QMessageBox.information(
-                    self.main_window, 'Preferences exported',
-                    'Preferences successfully exported!')
+                    self.main_window, tr('Preferences exported'),
+                    tr('Preferences successfully exported!'))

@@ -8,6 +8,7 @@ from pyqode.core.widgets import SplittableCodeEditTabWidget, OutputWindow
 from pyqode.core.widgets import FileSystemContextMenu, FileIconProvider as \
     PyQodeIconProvider
 import sys
+from open_cobol_ide.translation import tr
 from open_cobol_ide import backend, system
 from open_cobol_ide.settings import Settings
 
@@ -35,8 +36,8 @@ class RecentFilesListWidget(QtWidgets.QListWidget):
         Shows the recent files list context menu which allow to remove an item
         from the list or to clear the entire list.
         """
-        actionRemove = QtWidgets.QAction('Remove from recent files list', self)
-        actionClear = QtWidgets.QAction('Clear recent files list', self)
+        actionRemove = QtWidgets.QAction(tr('Remove from recent files list'), self)
+        actionClear = QtWidgets.QAction(tr('Clear recent files list'), self)
         actionRemove.triggered.connect(self.remove_current_requested)
         actionClear.triggered.connect(self.clear_requested)
         actionClear.setIcon(QtGui.QIcon.fromTheme(
@@ -76,7 +77,7 @@ class FSContextMenu(FileSystemContextMenu):
         self.app = app
 
     def get_new_user_actions(self):
-        self.action_new_file = QtWidgets.QAction('COBOL file', self)
+        self.action_new_file = QtWidgets.QAction(tr('COBOL file'), self)
         self.action_new_file.setIcon(QtGui.QIcon(
             ':/ide-icons/rc/cobol-mimetype.png'))
         self.action_new_file.triggered.connect(self._on_new_file_triggered)

@@ -11,6 +11,7 @@ import os
 import sys
 from pyqode.qt import QtCore, QtWidgets, QT_API, PYQT5_API, PYSIDE_API
 
+from open_cobol_ide.translation import tr
 from open_cobol_ide import __version__, logger, system
 from open_cobol_ide.controllers import (
     CobolController, EditController, FileController, HelpController,
@@ -87,14 +88,14 @@ class Application(QtCore.QObject):
         try:
             check_compiler()
         except CompilerNotFound:
-            msg = 'Failed to find a working GnuCOBOL compiler!\n' \
+            msg = tr('Failed to find a working GnuCOBOL compiler!\n' \
                 "The IDE will continue to work but you won't be able to " \
-                'compile...'
+                'compile...')
             if system.windows:
-                msg += '\n\nTip: Ensure that there is no additional ' \
-                    'installation of MinGW in %s:\\MinGW' % sys.executable[0]
+                msg += tr('\n\nTip: Ensure that there is no additional ' \
+                    'installation of MinGW in %s:\\MinGW') % sys.executable[0]
             QtWidgets.QMessageBox.warning(
-                self.win, 'COBOL compiler not found or not working', msg)
+                self.win, tr('COBOL compiler not found or not working'), msg)
         else:
             _logger().info('GnuCOBOL version: %s',
                            GnuCobolCompiler.get_version(include_all=False))
@@ -276,8 +277,8 @@ class Application(QtCore.QObject):
             if _tb in self._reported_tracebacks:
                 return
             self._reported_tracebacks.append(_tb)
-            title = '[Unhandled exception] %s' % exc.__class__.__name__
-            description = 'An unhandled exception has occured:\n\n%s' % tb
+            title = tr('[Unhandled exception] %s') % exc.__class__.__name__
+            description = tr('An unhandled exception has occured:\n\n%s') % tb
             QtWidgets.QMessageBox.critical(self.win, title, description)
         except Exception:
             _logger().exception('exception in excepthook')

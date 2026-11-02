@@ -1,4 +1,5 @@
 import sys
+from open_cobol_ide.translation import tr
 from open_cobol_ide.compilers import GnuCobolCompiler
 from pyqode.qt import QtCore, QtWidgets
 from open_cobol_ide.view.forms import dlg_check_compiler_ui
@@ -16,7 +17,7 @@ class DlgCheckCompiler(QtWidgets.QDialog):
         version = GnuCobolCompiler.get_version()
         self.ui.plainTextEdit.setPlainText(version)
         self.ui.buttonBox.button(self.ui.buttonBox.Apply).setText(
-            'Check compilation')
+            tr('Check compilation'))
         self.ui.buttonBox.button(self.ui.buttonBox.Apply).clicked.connect(
             self._check_compiler)
         self.ui.buttonBox.button(self.ui.buttonBox.Apply).setDisabled(
@@ -26,22 +27,22 @@ class DlgCheckCompiler(QtWidgets.QDialog):
         output, exit_code = GnuCobolCompiler.check_compiler(self._compiler)
 
         if exit_code == 0:
-            output = 'Compiler works!'
+            output = tr('Compiler works!')
         else:
-            output = 'Compiler check failed:\n\nExit code: %d\nOutput:%s' % (
+            output = tr('Compiler check failed:\n\nExit code: %d\nOutput:%s') % (
                 exit_code, output)
 
-        self.ui.label.setText('Output:')
+        self.ui.label.setText(tr('Output:'))
         self.ui.plainTextEdit.setPlainText(output)
         if exit_code != 0:
             self.ui.plainTextEdit.appendPlainText(
-                'Tips:\n- You might need to adapt the environment variables '
-                'set by the IDE to make it work.')
+                tr('Tips:\n- You might need to adapt the environment variables '
+                'set by the IDE to make it work.'))
             if system.windows:
                 self.ui.plainTextEdit.appendPlainText(
-                    '- If you see MinGW related errors ensure that there is no'
+                    tr('- If you see MinGW related errors ensure that there is no'
                     ' additional installation of MinGW in '
-                    '%s:\\MinGW' % sys.executable[0])
+                    '%s:\\MinGW') % sys.executable[0])
 
         GnuCobolCompiler.check_compiler.reset()
 

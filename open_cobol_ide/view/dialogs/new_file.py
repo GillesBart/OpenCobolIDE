@@ -2,6 +2,7 @@ import locale
 import os
 from pyqode.qt import QtCore, QtWidgets
 from pyqode.core.managers import FileManager
+from open_cobol_ide.translation import tr
 from open_cobol_ide.settings import Settings
 from open_cobol_ide.view.forms import dlg_file_type_ui
 
@@ -143,7 +144,7 @@ class DlgNewFile(QtWidgets.QDialog, dlg_file_type_ui.Ui_Dialog):
     @QtCore.Slot()
     def on_toolButton_clicked(self):
         ret = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 'Choose the program directory',
+            self, tr('Choose the program directory'),
             Settings().last_path)
         if ret:
             self.lineEditPath.setText(ret)
@@ -172,9 +173,9 @@ class DlgNewFile(QtWidgets.QDialog, dlg_file_type_ui.Ui_Dialog):
             path = dlg.path()
             if os.path.exists(path):
                 answer = QtWidgets.QMessageBox.question(
-                    parent, 'Overwrite file',
-                    'The file %s already exists. '
-                    'Do you want to overwrite it?' % path,
+                    parent, tr('Overwrite file'),
+                    tr('The file %s already exists. '
+                    'Do you want to overwrite it?') % path,
                     QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                     QtWidgets.QMessageBox.No)
                 if answer == QtWidgets.QMessageBox.No:

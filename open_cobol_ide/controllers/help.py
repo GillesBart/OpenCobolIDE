@@ -1,4 +1,5 @@
 from pyqode.qt import QtCore, QtGui, QtWidgets
+from open_cobol_ide.translation import tr
 from open_cobol_ide.settings import Settings
 from open_cobol_ide.view.dialogs.about import DlgAbout
 from .base import Controller
@@ -40,11 +41,11 @@ class HelpController(Controller):
 
     def restore_factory_defaults(self):
         answer = QtWidgets.QMessageBox.question(
-            self.main_window, 'Restory factory defaults?',
-            'Are you sure you want to restore factory defaults?\n\n'
+            self.main_window, tr('Restory factory defaults?'),
+            tr('Are you sure you want to restore factory defaults?\n\n'
             'Clicking yes will remove all your preferences and restart the '
             "IDE with clean settings. Use this only if you're experiencing a "
-            "problem!")
+            "problem!"))
         if answer == QtWidgets.QMessageBox.Yes:
             Settings().clear()
             self.app.restart()

@@ -21,7 +21,7 @@ class DlgGotoLine(QtWidgets.QDialog, dlg_goto_line_ui.Ui_Dialog):
         self.lblLineCount.setText("%d" % line_count)
         self.buttonBox.button(self.buttonBox.Ok).setText(_("Go"))
         self.buttonBox.button(self.buttonBox.Cancel).setText(
-            "I'm going nowhere")
+            _("I'm going nowhere"))
         self.spinBox.setFocus()
 
     @classmethod

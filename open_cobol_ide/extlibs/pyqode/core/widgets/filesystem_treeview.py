@@ -626,7 +626,7 @@ class FileSystemContextMenu(QtWidgets.QMenu):
 
     def init_actions(self):
         # New - submenu
-        self.menu_new = self.addMenu("&New")
+        self.menu_new = self.addMenu(_("&New"))
         self.menu_new.setIcon(
             icons.icon('document-new', None, 'fa.plus'))
         # https://github.com/pyQode/pyqode.core/pull/153

@@ -135,6 +135,20 @@ if windows:
         shutil.copytree(
             os.path.join(os.getcwd(), 'open_cobol_ide', 'translations'),
             tr_dir)
+    # Qt standard dialogs (Yes/No/Cancel...) for each available language
+    try:
+        import PyQt5
+        qt_dir = os.path.dirname(PyQt5.__file__)
+        for code in [os.path.splitext(f)[0] for f in os.listdir(tr_dir)
+                     if f.endswith('.json')]:
+            for folder in (os.path.join(qt_dir, 'Qt5', 'translations'),
+                           os.path.join(qt_dir, 'Qt', 'translations')):
+                qm = os.path.join(folder, 'qtbase_%s.qm' % code)
+                if os.path.exists(qm):
+                    shutil.copy(qm, tr_dir)
+                    break
+    except (ImportError, RuntimeError, OSError):
+        pass  # nothing to do
 
     print(
         '\n### Creating windows installer using Inno Setup\n'

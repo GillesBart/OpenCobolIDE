@@ -1077,7 +1077,7 @@ class CodeEditTabWidget(BaseTabWidget):
         try:
             editor.file.save(path)
         except Exception as e:
-            QtWidgets.QMessageBox.warning(editor, "Failed to save file", 'Failed to save %r.\n\nError="%s"' %
+            QtWidgets.QMessageBox.warning(editor, _("Failed to save file"), _('Failed to save %r.\n\nError="%s"') %
                                           (path, e))
         else:
             tw = editor.parent_tab_widget
@@ -1261,8 +1261,8 @@ class SplittableCodeEditTabWidget(SplittableTabWidget):
                 self.main_tab_widget.save_widget(widget)
             except Exception as e:
                 QtWidgets.QMessageBox.warning(
-                    self, 'Failed to save file',
-                    'Failed to save file: %s\nError=%s' % (
+                    self, _('Failed to save file'),
+                    _('Failed to save file: %s\nError=%s') % (
                         widget.file.path, str(e)))
             else:
                 self.document_saved.emit(path, old_content)

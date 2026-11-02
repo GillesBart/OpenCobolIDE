@@ -10,6 +10,7 @@ work or not).
 import os
 import logging
 from pyqode.qt import QtCore, QtWidgets
+from open_cobol_ide.translation import tr
 from open_cobol_ide import system
 from open_cobol_ide.view.forms.ide_ui import Ui_MainWindow
 from open_cobol_ide.settings import Settings
@@ -24,10 +25,10 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.dockWidgetFileSystem.setWindowTitle('File system')
-        self.ui.dockWidgetLogs.setWindowTitle('Logs')
-        self.ui.dockWidgetNavPanel.setWindowTitle('Navigation')
-        self.ui.dockWidgetOffsets.setWindowTitle('Offset calculator')
+        self.ui.dockWidgetFileSystem.setWindowTitle(tr('File system'))
+        self.ui.dockWidgetLogs.setWindowTitle(tr('Logs'))
+        self.ui.dockWidgetNavPanel.setWindowTitle(tr('Navigation'))
+        self.ui.dockWidgetOffsets.setWindowTitle(tr('Offset calculator'))
         self.setAcceptDrops(True)
         self.restore_state()
         Qt = QtCore.Qt

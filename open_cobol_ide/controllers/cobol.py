@@ -12,6 +12,7 @@ from pyqode.core.api import TextHelper
 from pyqode.core.modes import CheckerMessage, CheckerMessages
 from pyqode.qt import QtCore, QtGui, QtWidgets
 from .base import Controller
+from open_cobol_ide.translation import tr
 from open_cobol_ide import system
 from open_cobol_ide.enums import FileType
 from open_cobol_ide.compilers import GnuCobolCompiler, get_file_type, \
@@ -191,18 +192,18 @@ class CobolController(Controller):
 
     def check_compiler(self, dotted_extension):
         compiler_works = False
-        msg = 'Invalid extension'
+        msg = tr('Invalid extension')
         if dotted_extension.lower() in Settings().cobc_extensions:
             compiler_works = GnuCobolCompiler().is_working()
-            msg = 'GnuCOBOL compiler not found or not working'
+            msg = tr('GnuCOBOL compiler not found or not working')
         elif dotted_extension.lower() in Settings().dbpre_extensions:
             compiler_works = DbpreCompiler().is_working()
-            msg = 'dbpre compiler not working, please check your SQL COBOL ' \
-                'configuration'
+            msg = tr('dbpre compiler not working, please check your SQL COBOL ' \
+                'configuration')
         elif dotted_extension.lower() in Settings().esqloc_extensions:
             compiler_works = EsqlOCCompiler().is_working()
-            msg = 'esqlOC compiler not working, please check your SQL COBOL ' \
-                'configuration'
+            msg = tr('esqlOC compiler not working, please check your SQL COBOL ' \
+                'configuration')
         return compiler_works, msg
 
     def compile(self):
@@ -218,8 +219,8 @@ class CobolController(Controller):
         compiler_works, msg = self.check_compiler(dotted_extension)
         if not compiler_works:
             QtWidgets.QMessageBox.warning(
-                self.app.win, 'Cannot compile file',
-                'Cannot compile file: %r.\n\nReason: %s' % (
+                self.app.win, tr('Cannot compile file'),
+                tr('Cannot compile file: %r.\n\nReason: %s') % (
                     os.path.split(path)[1], msg))
             return
         # ensures all editors are saved before compiling
@@ -306,8 +307,8 @@ class CobolController(Controller):
         if type(exception) not in self._exception_flags:
             self._exception_flags.append(type(exception))
             QtWidgets.QMessageBox.critical(
-                self.main_window, 'Exception while compiling a file',
-                'An exception occured when compiling %r.\n\nError=%s' %
+                self.main_window, tr('Exception while compiling a file'),
+                tr('An exception occured when compiling %r.\n\nError=%s') %
                 (path, exception))
 
     def _on_file_compiled(self, filename, status, messages):
@@ -327,7 +328,7 @@ class CobolController(Controller):
             path = os.path.join(output_dir, name + ext)
             self.ui.errorsTable.add_message(
                 CheckerMessage(
-                    'Compilation succeeded (output: %s)' % path,
+                    tr('Compilation succeeded (output: %s)') % path,
                     CheckerMessages.INFO, -1,
                     path=filename))
         else:
@@ -336,7 +337,7 @@ class CobolController(Controller):
                 if msg.status == CheckerMessages.ERROR:
                     self._errors += 1
                 if len(msg.description.splitlines()) > 1:
-                    msg.description = 'For full output see compiler tab...'
+                    msg.description = tr('For full output see compiler tab...')
                 self.ui.errorsTable.add_message(msg)
 
     def _goto_error_msg(self, msg):
@@ -390,7 +391,7 @@ class CobolController(Controller):
                 _logger().debug("running program in external terminal: %r, %r, %r" % (cmd, wd, env))
                 subprocess.Popen(cmd, cwd=wd, creationflags=subprocess.CREATE_NEW_CONSOLE, env=env)
             except (OSError, subprocess.CalledProcessError):
-                msg = "Failed to launch program in external terminal (cmd=%s) " % ' '.join(cmd)
+                msg = tr("Failed to launch program in external terminal (cmd=%s) ") % ' '.join(cmd)
                 _logger().exception(msg)
                 self.ui.consoleOutput.appendPlainText(msg)
                 return
@@ -404,7 +405,7 @@ class CobolController(Controller):
             try:
                 subprocess.Popen(cmd, cwd=wd, env=env)
             except (OSError, subprocess.CalledProcessError):
-                msg = "Failed to launch program in external terminal (cmd=%s) " % ' '.join(cmd)
+                msg = tr("Failed to launch program in external terminal (cmd=%s) ") % ' '.join(cmd)
                 _logger().exception(msg)
                 self.ui.consoleOutput.appendPlainText(msg)
                 return
@@ -417,12 +418,12 @@ class CobolController(Controller):
             try:
                 subprocess.Popen(' '.join(cmd), cwd=wd, shell=True, env=env)
             except (OSError, subprocess.CalledProcessError):
-                msg = "Failed to launch program in external terminal (cmd=%s) " % ' '.join(cmd)
+                msg = tr("Failed to launch program in external terminal (cmd=%s) ") % ' '.join(cmd)
                 _logger().exception(msg)
                 self.ui.consoleOutput.appendPlainText(msg)
                 return
         _logger().info('running program in external terminal: %s', ' '.join(cmd))
-        self.ui.consoleOutput.appendPlainText("Launched in external terminal: %s" % ' '.join(cmd))
+        self.ui.consoleOutput.appendPlainText(tr("Launched in external terminal: %s") % ' '.join(cmd))
 
     def _run(self):
         """

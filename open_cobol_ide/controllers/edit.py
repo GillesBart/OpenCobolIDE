@@ -8,6 +8,7 @@ import weakref
 from pyqode.core.api import TextHelper, ColorScheme
 from pyqode.qt import QtCore, QtGui, QtWidgets
 from .base import Controller
+from open_cobol_ide.translation import tr
 from open_cobol_ide.enums import FileType
 from ..view.dialogs.preferences import DlgPreferences
 from ..settings import Settings
@@ -115,7 +116,7 @@ class EditController(Controller):
             QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         self._lbl_encoding.setText('UTF-8')
         # format
-        self._cb_free_format = QtWidgets.QCheckBox('Free format')
+        self._cb_free_format = QtWidgets.QCheckBox(tr('Free format'))
         self._cb_free_format.setChecked(Settings().free_format)
         self._cb_free_format.toggled.connect(self._on_free_format_toggled)
         # cursor position
@@ -161,8 +162,8 @@ class EditController(Controller):
                 editor = self.ui.tabWidgetEditors.open_document(path)
         except Exception as e:
             QtWidgets.QMessageBox.warning(
-                self.main_window, 'Failed to open path',
-                'Failed to open path: %s' % e)
+                self.main_window, tr('Failed to open path'),
+                tr('Failed to open path: %s') % e)
         else:
             try:
                 fw = editor.modes.get('FileWatcherMode')
@@ -308,9 +309,9 @@ class EditController(Controller):
 
     def _on_file_deleted(self, editor):
         if QtWidgets.QMessageBox.question(
-                self.main_window, 'Close editor?',
-                '%s has been deleted externally. Do you want to close its '
-                'editor?' % editor.file.path,
+                self.main_window, tr('Close editor?'),
+                tr('%s has been deleted externally. Do you want to close its '
+                'editor?') % editor.file.path,
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                 QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             self.ui.tabWidgetEditors.close_document(editor.file.path)

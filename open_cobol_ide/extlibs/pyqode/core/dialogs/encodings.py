@@ -37,7 +37,7 @@ class DlgPreferredEncodingsEditor(QtWidgets.QDialog):
         self.ui.tableWidgetAvailable.setSelectionBehavior(
             self.ui.tableWidgetAvailable.SelectRows)
         self.ui.tableWidgetAvailable.setHorizontalHeaderLabels([
-            'Encoding', 'Language'])
+            _('Encoding'), _('Language')])
         self.ui.tableWidgetAvailable.verticalHeader().hide()
         self.ui.tableWidgetAvailable.setSortingEnabled(True)
         preferred = Cache().preferred_encodings
@@ -62,7 +62,7 @@ class DlgPreferredEncodingsEditor(QtWidgets.QDialog):
         self.ui.tableWidgetPreferred.setSelectionBehavior(
             self.ui.tableWidgetPreferred.SelectRows)
         self.ui.tableWidgetPreferred.setHorizontalHeaderLabels([
-            'Encoding', 'Language'])
+            _('Encoding'), _('Language')])
         self.ui.tableWidgetPreferred.verticalHeader().hide()
         self.ui.tableWidgetPreferred.setSortingEnabled(True)
         for i, encoding in enumerate(Cache().preferred_encodings):
@@ -147,7 +147,7 @@ class DlgEncodingsChoice(QtWidgets.QDialog):
     """
     def __init__(self, parent, path, encoding):
         super(DlgEncodingsChoice, self).__init__(parent)
-        self.setWindowTitle('Choose encoding')
+        self.setWindowTitle(_('Choose encoding'))
         # avoid circular references with CodeEdit
         from pyqode.core._forms import dlg_encodings_ui
         self.ui = dlg_encodings_ui.Ui_Dialog()

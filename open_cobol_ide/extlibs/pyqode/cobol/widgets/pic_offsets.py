@@ -17,7 +17,7 @@ class PicOffsetsTable(QtWidgets.QTableWidget):
         self.verticalHeader().setVisible(False)
         self.setColumnCount(4)
         self.setHorizontalHeaderLabels(
-            ['Level', 'Name', 'Offset', 'PIC'])
+            [_('Level'), _('Name'), _('Offset'), 'PIC'])
         self.setEditTriggers(self.NoEditTriggers)
         self.setSelectionBehavior(self.SelectRows)
         self.setSelectionMode(self.SingleSelection)

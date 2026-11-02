@@ -17,6 +17,7 @@ from pyqode.core.cache import Cache
 from pyqode.core.modes import CheckerMessage, CheckerMessages
 from pyqode.qt import QtCore
 
+from open_cobol_ide.translation import tr
 from open_cobol_ide import system, msvc
 from open_cobol_ide.enums import FileType, GnuCobolStandard
 from open_cobol_ide.memoize import memoized
@@ -469,7 +470,7 @@ class GnuCobolCompiler(QtCore.QObject):
         if os.path.exists(output_full_path) and \
             os.path.getmtime(file_path) <= \
                 os.path.getmtime(output_full_path):
-            desc = 'compilation skipped, up to date...'
+            desc = tr('compilation skipped, up to date...')
             self.output_available.emit('%s: %s' % (file_path, desc))
             msg = (desc, CheckerMessages.INFO, -1, 0, None, None, file_path)
             _logger().info(desc)

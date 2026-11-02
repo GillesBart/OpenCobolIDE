@@ -2,6 +2,7 @@ import os
 import sys
 from pyqode.core.api.syntax_highlighter import PYGMENTS_STYLES, ColorScheme
 from pyqode.qt import QtCore, QtGui, QtWidgets
+from open_cobol_ide.translation import tr
 from open_cobol_ide import system, compilers
 from open_cobol_ide.enums import GnuCobolStandard
 from open_cobol_ide.settings import Settings
@@ -173,7 +174,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
 
     def _select_working_dir(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 'Select working directory')
+            self, tr('Select working directory'))
         if path:
             self.edit_working_dir.setText(path)
 
@@ -184,18 +185,18 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
             DlgCheckCompiler.check(self, pth)
         else:
             QtWidgets.QMessageBox.warning(
-                self, 'Invalid compiler path',
-                'Not a valid compiler path, path does not exists: %s!' % pth)
+                self, tr('Invalid compiler path'),
+                tr('Not a valid compiler path, path does not exists: %s!') % pth)
 
     def _add_lib_path(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 'Select a library directory')
+            self, tr('Select a library directory'))
         if path:
             self.listWidgetLibPaths.addItem(system.normpath(path))
 
     def _add_rel_lib_path(self):
         path, status = QtWidgets.QInputDialog.getText(
-            self, 'Add relative library path', 'Path:')
+            self, tr('Add relative library path'), tr('Path:'))
         if status:
             self.listWidgetLibPaths.addItem(system.normpath(path))
 
@@ -206,13 +207,13 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
 
     def _add_copy_path(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 'Select a copybook path')
+            self, tr('Select a copybook path'))
         if path:
             self.listWidgetCopyPaths.addItem(system.normpath(path))
 
     def _add_rel_copy_path(self):
         path, status = QtWidgets.QInputDialog.getText(
-            self, 'Add relative copybook path', 'Path:')
+            self, tr('Add relative copybook path'), tr('Path:'))
         if status:
             self.listWidgetCopyPaths.addItem(system.normpath(path))
 
@@ -224,19 +225,19 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
 
     def _select_vcvarsall(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Select vcvarsall.bat', self.lineEditVCVARS.text())
+            self, tr('Select vcvarsall.bat'), self.lineEditVCVARS.text())
         if path:
             path = system.normpath(path)
             if os.path.isfile(path) and path.lower().endswith('vcvarsall.bat'):
                 self.lineEditVCVARS.setText(path)
             else:
                 QtWidgets.QMessageBox.warning(
-                    self, "Invalid vcvarsall batch path",
-                    "%r is not a valid vcvarsall batch file" % path)
+                    self, tr("Invalid vcvarsall batch path"),
+                    tr("%r is not a valid vcvarsall batch file") % path)
 
     def _select_custom_compiler_path(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Select path to a GnuCOBOL compiler executable',
+            self, tr('Select path to a GnuCOBOL compiler executable'),
             self.lineEditCompilerPath.text())
         if path:
             self.lineEditCompilerPath.setText(system.normpath(path))
@@ -250,13 +251,13 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
 
     def _select_esqloc(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 'Select esqlOC folder', self.lineEditESQLOC.text())
+            self, tr('Select esqlOC folder'), self.lineEditESQLOC.text())
         if path:
             self.lineEditESQLOC.setText(system.normpath(path))
 
     def _select_dbpre(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Select dbpre executable', self.lineEditDbpre.text())
+            self, tr('Select dbpre executable'), self.lineEditDbpre.text())
         if path:
             self.lineEditDbpre.setText(system.normpath(path))
             self.labelDbpreVersion.setText(
@@ -266,7 +267,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
 
     def _select_cobmysqlapi(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Select cobmysqlapi object file',
+            self, tr('Select cobmysqlapi object file'),
             self.lineEditCobmysqlapi.text())
         if path:
             self.lineEditCobmysqlapi.setText(system.normpath(path))
@@ -279,7 +280,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
                 return 'Missing'
 
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 'Select dbpre framework directory',
+            self, tr('Select dbpre framework directory'),
             self.lineEditDbpreFramework.text())
         if path:
             path = system.normpath(path)
@@ -292,13 +293,13 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
                 self.lineEditDbpreFramework.setText(path)
             else:
                 QtWidgets.QMessageBox.warning(
-                    self, 'Invalid dpre framework directory',
-                    'Missing one of the following files: \n'
+                    self, tr('Invalid dpre framework directory'),
+                    tr('Missing one of the following files: \n'
                     'PGCTBBAT: %s\n'
                     'PGCTBPARAM: %s\n'
                     'PGCTBSUB: %s\n'
                     'PGCTBSUBWS: %s\n'
-                    'SQLCA: %s\n' % (
+                    'SQLCA: %s\n') % (
                         bool_to_string(pgctbbat), bool_to_string(pgctbparam),
                         bool_to_string(pgctbsub), bool_to_string(pgctbsubws),
                         bool_to_string(sqlca)))

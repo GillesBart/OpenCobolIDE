@@ -6,6 +6,7 @@ import pyqode.cobol
 import pyqode.core
 from pyqode.qt import QtGui, QtCore, QtWidgets
 
+from open_cobol_ide.translation import tr
 from open_cobol_ide import __version__, logger, system
 from open_cobol_ide.compilers import GnuCobolCompiler
 from open_cobol_ide.settings import Settings
@@ -48,7 +49,7 @@ class DlgAbout(QtWidgets.QDialog, dlg_about_ui.Ui_Dialog):
         self.tbwVersions.setColumnCount(1)
         self.tbwVersions.setRowCount(len(self.HEADERS))
         self.tbwVersions.setVerticalHeaderLabels(self.HEADERS)
-        self.tbwVersions.setHorizontalHeaderLabels(['Version'])
+        self.tbwVersions.setHorizontalHeaderLabels([tr('Version')])
         self.tbwVersions.verticalHeader().setStretchLastSection(False)
         self.labelMain.setText(self.labelMain.text() % __version__)
         self.setMinimumWidth(640)
@@ -136,20 +137,20 @@ cobcrun --runtime-env
         logging.getLogger().setLevel(lvl)
         if not DlgAbout._flg_log_level:
             QtWidgets.QMessageBox.information(
-                self, 'Restart required',
-                'You need to restart the IDE for the change to be applied.')
+                self, tr('Restart required'),
+                tr('You need to restart the IDE for the change to be applied.'))
             DlgAbout._flg_log_level = True
 
     def _clear_logs(self):
         failures = logger.clear_logs()
         if not failures:
             self.textEditLog.clear()
-            QtWidgets.QMessageBox.information(self, 'Logs cleared',
-                                              'Log files have been cleared.')
+            QtWidgets.QMessageBox.information(self, tr('Logs cleared'),
+                                              tr('Log files have been cleared.'))
         else:
             QtWidgets.QMessageBox.warning(
-                self, 'Failed to clear logs',
-                'Failed to remove the following log files: %r' %
+                self, tr('Failed to clear logs'),
+                tr('Failed to remove the following log files: %r') %
                 failures)
 
 

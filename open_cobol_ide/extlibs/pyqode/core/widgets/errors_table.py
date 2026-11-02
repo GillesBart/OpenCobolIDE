@@ -37,7 +37,7 @@ class ErrorsTable(QtWidgets.QTableWidget):
         QtWidgets.QTableWidget.__init__(self, parent)
         self.setColumnCount(6)
         self.setHorizontalHeaderLabels(
-            ["Type", "File name", "Line", "Description", 'Details'])
+            [_("Type"), _("File name"), _("Line"), _("Description"), _('Details')])
         try:
             # pyqt4
             self.horizontalHeader().setResizeMode(
@@ -84,7 +84,7 @@ class ErrorsTable(QtWidgets.QTableWidget):
         self.setRowCount(0)
         self.setColumnCount(4)
         self.setHorizontalHeaderLabels(
-            ["Type", "File name", "Line", "Description"])
+            [_("Type"), _("File name"), _("Line"), _("Description")])
 
     @classmethod
     @memoized
