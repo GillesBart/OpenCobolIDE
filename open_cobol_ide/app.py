@@ -49,6 +49,8 @@ class Application(QtCore.QObject):
         if system.darwin:
             Application._osx_init()
         self.app = QtWidgets.QApplication(sys.argv)
+        from open_cobol_ide import translation
+        translation.install(self.app)
 
         self._reported_tracebacks = []
         sys.excepthook = self._except_hook
