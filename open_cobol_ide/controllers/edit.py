@@ -342,7 +342,12 @@ def _fill_edit_menu(ui, editor):
     menu = ui.menuEdit
     menu.removeAction(ui.mnuActiveEditor.menuAction())
     for a in getattr(ui, '_edit_dynamic', []):
-        menu.removeAction(a)
+        try:
+            menu.removeAction(a)
+        except RuntimeError:
+            # action ou menu détruit avec son éditeur (onglet fermé) :
+            # Qt l'a déjà retiré du menu
+            pass
     acts = menu.actions()
     pref = acts.index(ui.actionPreferences)
     anchor = ui.actionPreferences
