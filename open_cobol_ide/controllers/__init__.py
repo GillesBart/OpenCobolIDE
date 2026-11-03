@@ -11,4 +11,5 @@ from .edit import EditController
 from .file import FileController
 from .help import HelpController
 from .home import HomeController
+from .python import PythonController
 from .view import ViewController

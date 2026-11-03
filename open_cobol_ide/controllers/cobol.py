@@ -356,6 +356,9 @@ class CobolController(Controller):
         """
         if self.app.edit.current_editor is None:
             return
+        if self.app.python.is_python(self.app.edit.current_editor):
+            self.app.python.run()
+            return
         self.ui.consoleOutput.clear()
         self._run_requested = True
         self.compile()
@@ -473,6 +476,10 @@ class CobolController(Controller):
                 self.ui.consoleOutput.start_process(program, working_dir=wd, env=env, print_command=True)
 
     def _on_run_finished(self):
+        if self.app.python.is_python(self.app.edit.current_editor):
+            # un script Python n'a pas d'étape de compilation
+            self.enable_run(True)
+            return
         self.enable_compile(True)
         self.enable_run(True)
 
@@ -491,5 +498,8 @@ class CobolController(Controller):
         if self._compilation_thread:
             self._compilation_thread.terminate()
         self.ui.consoleOutput.stop_process()
+        if self.app.python.is_python(self.app.edit.current_editor):
+            self.enable_run(True)
+            return
         self.enable_compile(True)
         self.enable_run(True)

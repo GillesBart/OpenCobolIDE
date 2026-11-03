@@ -231,6 +231,16 @@ class EditController(Controller):
             # update file type menu
             self.app.cobol.display_file_type(editor)
             # update cobol related actions (run/compile
+            if isinstance(editor, PythonCodeEdit):
+                # script Python : pas de compilation, mais on peut l'exécuter
+                self.ui.menuCobol.setEnabled(False)
+                self.app.cobol.enable_compile(False)
+                self.app.cobol.enable_run(
+                    not self.ui.consoleOutput.is_running)
+                self._update_status_bar_labels()
+                _logger().debug('current editor changed: %s',
+                                editor.file.path)
+                return
             try:
                 is_executable = (self.app.edit.current_editor.file_type ==
                                  FileType.EXECUTABLE)

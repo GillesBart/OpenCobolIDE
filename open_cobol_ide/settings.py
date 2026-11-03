@@ -967,6 +967,24 @@ class Settings(object):
              for k, v in dic.items()}))
 
     @property
+    def python_interpreter(self):
+        return system.from_portable(
+            self._settings.value('pythonInterpreter', ''))
+
+    @python_interpreter.setter
+    def python_interpreter(self, value):
+        self._settings.setValue('pythonInterpreter',
+                                system.to_portable(str(value)))
+
+    @property
+    def python_arguments(self):
+        return str(self._settings.value('pythonArguments', ''))
+
+    @python_arguments.setter
+    def python_arguments(self, value):
+        self._settings.setValue('pythonArguments', str(value))
+
+    @property
     def copy_runtime_dlls(self):
         return bool(int(self._settings.value('copy_runtime_dlls', 0)))
 

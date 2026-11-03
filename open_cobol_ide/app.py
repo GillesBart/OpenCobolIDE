@@ -15,7 +15,7 @@ from open_cobol_ide.translation import tr
 from open_cobol_ide import __version__, logger, system
 from open_cobol_ide.controllers import (
     CobolController, EditController, FileController, HelpController,
-    HomeController, ViewController)
+    HomeController, PythonController, ViewController)
 from open_cobol_ide.controllers.cobol import CompilationThread
 from open_cobol_ide.compilers import check_compiler, CompilerNotFound, \
     GnuCobolCompiler
@@ -82,6 +82,7 @@ class Application(QtCore.QObject):
         self.home = HomeController(self)
         self.edit = EditController(self)
         self.cobol = CobolController(self)
+        self.python = PythonController(self)
         self.help = HelpController(self)
         self.win.app = self
 
@@ -118,6 +119,7 @@ class Application(QtCore.QObject):
     def close(self):
         self.view = None
         self.cobol = None
+        self.python = None
         self.edit = None
         self.file = None
         self.win = None
