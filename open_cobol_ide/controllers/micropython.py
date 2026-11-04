@@ -39,6 +39,24 @@ def parse_port_list(text):
     return ports
 
 
+# Liste récursive des fichiers de la carte. « mpremote fs ls » s'appuie sur
+# os.ilistdir, absent de CircuitPython : on n'utilise ici que os.listdir et
+# os.stat, disponibles partout.
+LIST_FILES_CODE = (
+    "import os\n"
+    "def ls(p, i=''):\n"
+    "    for n in sorted(os.listdir(p)):\n"
+    "        f = p.rstrip('/') + '/' + n\n"
+    "        s = os.stat(f)\n"
+    "        if s[0] & 0x4000:\n"
+    "            print('%8s %s%s/' % ('', i, n))\n"
+    "            ls(f, i + '  ')\n"
+    "        else:\n"
+    "            print('%8d %s%s' % (s[6], i, n))\n"
+    "ls('/')\n"
+)
+
+
 class MicroPythonController(Controller):
     """
     Contrôle le sous-menu MicroPython.
@@ -214,7 +232,7 @@ class MicroPythonController(Controller):
     def list_files(self):
         interpreter = self._prepare()
         if interpreter:
-            self._start(interpreter, self._args('fs', 'ls'))
+            self._start(interpreter, self._args('exec', LIST_FILES_CODE))
 
     def toggle_reset(self):
         Settings().micropython_reset = self.actionResetBefore.isChecked()
