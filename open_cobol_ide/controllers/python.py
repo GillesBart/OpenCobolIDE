@@ -49,6 +49,16 @@ def split_arguments(text):
     return args
 
 
+def no_window_kwargs():
+    """
+    Arguments de subprocess pour ne pas faire clignoter une fenêtre console
+    (l'IDE est une application graphique) lors d'un appel de courte durée.
+    """
+    if sys.platform == 'win32':
+        return {'creationflags': subprocess.CREATE_NO_WINDOW}
+    return {}
+
+
 def find_interpreter():
     """
     Interpréteur Python à utiliser : celui des préférences, sinon le premier
@@ -129,7 +139,7 @@ class PythonController(Controller):
             return None
         try:
             subprocess.run([path, '--version'], capture_output=True,
-                           timeout=10, check=True)
+                           timeout=10, check=True, **no_window_kwargs())
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 self.main_window, tr('Invalid interpreter'),

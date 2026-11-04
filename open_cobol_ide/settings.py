@@ -977,6 +977,15 @@ class Settings(object):
                                 system.to_portable(str(value)))
 
     @property
+    def micropython_port(self):
+        """Port série de la carte MicroPython ('' = détection automatique)."""
+        return str(self._settings.value('micropythonPort', ''))
+
+    @micropython_port.setter
+    def micropython_port(self, value):
+        self._settings.setValue('micropythonPort', str(value))
+
+    @property
     def python_arguments(self):
         return str(self._settings.value('pythonArguments', ''))
 

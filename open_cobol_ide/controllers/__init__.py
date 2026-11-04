@@ -12,4 +12,5 @@ from .file import FileController
 from .help import HelpController
 from .home import HomeController
 from .python import PythonController
+from .micropython import MicroPythonController
 from .view import ViewController
