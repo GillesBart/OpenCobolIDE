@@ -1,0 +1,113 @@
+From 167d9399114ae1094560acf4848dc0469a115ffb Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 10:34:01 +0000
+Subject: [PATCH] Fichiers Python : ouverture en UTF-8 (BOM / cookie coding
+ respectes), plus de cp1252 par defaut
+
+---
+ open_cobol_ide/controllers/edit.py      | 17 ++++++++++++++---
+ open_cobol_ide/view/editors/__init__.py |  2 +-
+ open_cobol_ide/view/editors/python.py   | 20 ++++++++++++++++++++
+ 3 files changed, 35 insertions(+), 4 deletions(-)
+
+diff --git a/open_cobol_ide/controllers/edit.py b/open_cobol_ide/controllers/edit.py
+index dc3ab3f..4e03673 100644
+--- a/open_cobol_ide/controllers/edit.py
++++ b/open_cobol_ide/controllers/edit.py
+@@ -6,6 +6,7 @@ import logging
+ import os
+ import weakref
+ from pyqode.core.api import TextHelper, ColorScheme
++from pyqode.core.cache import Cache
+ from pyqode.qt import QtCore, QtGui, QtWidgets
+ from .base import Controller
+ from open_cobol_ide.translation import tr
+@@ -13,7 +14,7 @@ from open_cobol_ide.enums import FileType
+ from ..view.dialogs.preferences import DlgPreferences
+ from ..settings import Settings
+ from ..view.editors import CobolCodeEdit, GenericCodeEdit, TextEdit, \
+-    PythonCodeEdit, \
++    PythonCodeEdit, python_source_encoding, \
+     update_editor_settings
+ from ..view.widgets import FSContextMenu
+ 
+@@ -154,13 +155,23 @@ class EditController(Controller):
+         :param mimetype: mimetype of the file to open.
+         :return:
+         """
++        # fichier source Python : UTF-8 (ou BOM / cookie "# coding:") et non
++        # l'encodage de la machine (cp1252), y compris si un ancien encodage a
++        # été mémorisé pour ce fichier
++        encoding = None
++        if os.path.splitext(path)[1].lower() in PythonCodeEdit.extensions:
++            encoding = python_source_encoding(path)
++            if encoding:
++                Cache().set_file_encoding(path, encoding)
+         try:
+             try:
+                 editor = self.ui.tabWidgetEditors.open_document(
+-                    path, preferred_eol=Settings().preferred_eol,
++                    path, encoding=encoding,
++                    preferred_eol=Settings().preferred_eol,
+                     autodetect_eol=Settings().autodetect_eol)
+             except TypeError:
+-                editor = self.ui.tabWidgetEditors.open_document(path)
++                editor = self.ui.tabWidgetEditors.open_document(
++                    path, encoding=encoding)
+         except Exception as e:
+             QtWidgets.QMessageBox.warning(
+                 self.main_window, tr('Failed to open path'),
+diff --git a/open_cobol_ide/view/editors/__init__.py b/open_cobol_ide/view/editors/__init__.py
+index 62f1c12..20fb518 100644
+--- a/open_cobol_ide/view/editors/__init__.py
++++ b/open_cobol_ide/view/editors/__init__.py
+@@ -2,7 +2,7 @@ from pyqode.qt import QtGui
+ from pyqode.core.api import ColorScheme
+ from .cobol import CobolCodeEdit
+ from .generic import GenericCodeEdit
+-from .python import PythonCodeEdit
++from .python import PythonCodeEdit, python_source_encoding
+ from .text import TextEdit
+ 
+ 
+diff --git a/open_cobol_ide/view/editors/python.py b/open_cobol_ide/view/editors/python.py
+index 150b43a..8970461 100644
+--- a/open_cobol_ide/view/editors/python.py
++++ b/open_cobol_ide/view/editors/python.py
+@@ -9,6 +9,7 @@ par indentation, complétion sur les mots du document) et ajoute :
+     - le plan du fichier (classes, fonctions, méthodes, variables).
+ """
+ import re
++import tokenize
+ 
+ from pyqode.core import modes
+ from pyqode.core.api import Mode
+@@ -22,6 +23,25 @@ from .generic import GenericCodeEdit
+ _DEDENT_RE = re.compile(r'(return|pass|break|continue|raise)\b')
+ 
+ 
++def python_source_encoding(path):
++    """
++    Encodage d'un fichier source Python : BOM ou cookie ``# coding:``, sinon
++    UTF-8 (comme l'interpréteur), et non l'encodage de la machine (cp1252).
++
++    :return: le nom de l'encodage, ou None si le fichier est illisible avec cet
++        encodage (ancien fichier ANSI) : l'appelant garde alors son
++        comportement habituel (encodage mémorisé ou panneau de choix).
++    """
++    try:
++        with open(path, 'rb') as f:
++            encoding, _ = tokenize.detect_encoding(f.readline)
++            f.seek(0)
++            f.read().decode(encoding)
++    except (OSError, SyntaxError, LookupError, UnicodeError):
++        return None
++    return encoding
++
++
+ def scan_line(line):
+     """
+     Analyse une ligne de code Python.
+-- 
+2.43.0
+
