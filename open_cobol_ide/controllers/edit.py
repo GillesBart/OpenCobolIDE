@@ -6,6 +6,7 @@ import logging
 import os
 import weakref
 from pyqode.core.api import TextHelper, ColorScheme
+from pyqode.core.cache import Cache
 from pyqode.qt import QtCore, QtGui, QtWidgets
 from .base import Controller
 from open_cobol_ide.translation import tr
@@ -13,7 +14,7 @@ from open_cobol_ide.enums import FileType
 from ..view.dialogs.preferences import DlgPreferences
 from ..settings import Settings
 from ..view.editors import CobolCodeEdit, GenericCodeEdit, TextEdit, \
-    PythonCodeEdit, \
+    PythonCodeEdit, python_source_encoding, \
     update_editor_settings
 from ..view.widgets import FSContextMenu
 
@@ -154,13 +155,23 @@ class EditController(Controller):
         :param mimetype: mimetype of the file to open.
         :return:
         """
+        # fichier source Python : UTF-8 (ou BOM / cookie "# coding:") et non
+        # l'encodage de la machine (cp1252), y compris si un ancien encodage a
+        # été mémorisé pour ce fichier
+        encoding = None
+        if os.path.splitext(path)[1].lower() in PythonCodeEdit.extensions:
+            encoding = python_source_encoding(path)
+            if encoding:
+                Cache().set_file_encoding(path, encoding)
         try:
             try:
                 editor = self.ui.tabWidgetEditors.open_document(
-                    path, preferred_eol=Settings().preferred_eol,
+                    path, encoding=encoding,
+                    preferred_eol=Settings().preferred_eol,
                     autodetect_eol=Settings().autodetect_eol)
             except TypeError:
-                editor = self.ui.tabWidgetEditors.open_document(path)
+                editor = self.ui.tabWidgetEditors.open_document(
+                    path, encoding=encoding)
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 self.main_window, tr('Failed to open path'),

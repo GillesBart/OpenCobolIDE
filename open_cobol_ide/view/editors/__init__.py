@@ -2,7 +2,7 @@ from pyqode.qt import QtGui
 from pyqode.core.api import ColorScheme
 from .cobol import CobolCodeEdit
 from .generic import GenericCodeEdit
-from .python import PythonCodeEdit
+from .python import PythonCodeEdit, python_source_encoding
 from .text import TextEdit
 
 

@@ -9,6 +9,7 @@ par indentation, complétion sur les mots du document) et ajoute :
     - le plan du fichier (classes, fonctions, méthodes, variables).
 """
 import re
+import tokenize
 
 from pyqode.core import modes
 from pyqode.core.api import Mode
@@ -20,6 +21,25 @@ from open_cobol_ide.translation import tr
 from .generic import GenericCodeEdit
 
 _DEDENT_RE = re.compile(r'(return|pass|break|continue|raise)\b')
+
+
+def python_source_encoding(path):
+    """
+    Encodage d'un fichier source Python : BOM ou cookie ``# coding:``, sinon
+    UTF-8 (comme l'interpréteur), et non l'encodage de la machine (cp1252).
+
+    :return: le nom de l'encodage, ou None si le fichier est illisible avec cet
+        encodage (ancien fichier ANSI) : l'appelant garde alors son
+        comportement habituel (encodage mémorisé ou panneau de choix).
+    """
+    try:
+        with open(path, 'rb') as f:
+            encoding, _ = tokenize.detect_encoding(f.readline)
+            f.seek(0)
+            f.read().decode(encoding)
+    except (OSError, SyntaxError, LookupError, UnicodeError):
+        return None
+    return encoding
 
 
 def scan_line(line):
