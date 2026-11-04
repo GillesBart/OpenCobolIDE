@@ -70,6 +70,12 @@ class MainWindow(QtWidgets.QMainWindow):
         _logger().debug('CLOSING')
         self.ui.tabWidgetEditors.closeEvent(event)
         if event.isAccepted():
+            console = self.ui.consoleOutput
+            if console.is_running:
+                # programme ou script encore en cours : on l'arrête avant de
+                # détruire la console ("QProcess: Destroyed while process is
+                # still running")
+                console.stop_process()
             _logger().debug('CLOSED')
 
     def dragEnterEvent(self, event):

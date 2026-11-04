@@ -199,3 +199,10 @@ class MyOutputWindow(OutputWindow):
             base_backend += '.exe'
         backend_path = os.path.join(cwd, base_backend) if hasattr(sys, 'frozen') else backend.__file__
         super(MyOutputWindow, self).__init__(parent=parent, backend=backend_path)
+
+    def clear(self):
+        super(MyOutputWindow, self).clear()
+        # le formateur garde la position du curseur d'avant l'effacement :
+        # sans cette remise à zéro Qt signale "setPosition out of range" au
+        # lancement du processus suivant
+        self._formatter._last_cursor_pos = 0
