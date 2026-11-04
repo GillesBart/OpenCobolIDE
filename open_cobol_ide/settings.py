@@ -397,6 +397,16 @@ class Settings(object):
     def color_scheme(self, value):
         self._settings.setValue('colorScheme', value)
 
+    @property
+    def python_color_scheme(self):
+        """Thème de couleurs des fichiers Python (par défaut, celui de COBOL)."""
+        return self._settings.value('pythonColorScheme', '') or \
+            self.color_scheme
+
+    @python_color_scheme.setter
+    def python_color_scheme(self, value):
+        self._settings.setValue('pythonColorScheme', value)
+
     # Run settings
     # ----------------------
     @property

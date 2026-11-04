@@ -6,9 +6,33 @@ from open_cobol_ide.translation import tr
 from open_cobol_ide import system, compilers
 from open_cobol_ide.enums import GnuCobolStandard
 from open_cobol_ide.settings import Settings
+from open_cobol_ide.view.editors import PythonCodeEdit
 from open_cobol_ide.view.forms import dlg_preferences_ui
 from open_cobol_ide.view.dialogs.check_compiler import DlgCheckCompiler
 from open_cobol_ide.view.dialogs.cobc_help import DlgCobcHelp
+
+PYTHON_TEMPLATE = '''import machine
+from time import sleep_ms
+
+
+class Led:
+    """Clignotement d'une LED."""
+    PIN = 2
+
+    def __init__(self, pin=PIN):
+        self.pin = machine.Pin(pin, machine.Pin.OUT)
+
+    def blink(self, times=3):
+        # alterne l'état de la broche
+        for i in range(times):
+            self.pin.value(not self.pin.value())
+            sleep_ms(250)
+        return "fini : %d fois" % times
+
+
+if __name__ == "__main__":
+    Led().blink(5)
+'''
 
 DEFAULT_TEMPLATE = '''      * Author:
       * Date:
@@ -103,6 +127,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
         self.listWidgetColorSchemes.currentItemChanged.connect(
             self.update_color_scheme_preview)
         self.plainTextEdit.setPlainText(DEFAULT_TEMPLATE, '', '')
+        self._setup_language_color_selector()
         self.lineEditDbpre.setReadOnly(True)
         self.lineEditDbpreFramework.setReadOnly(True)
         self.lineEditCobmysqlapi.setReadOnly(True)
@@ -306,6 +331,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
 
     def stop_backend(self):
         self.plainTextEdit.backend.stop()
+        self.plainTextEditPython.backend.stop()
 
     def _update_icon_theme(self, c):
         index = self.comboBoxIconTheme.findText(c)
@@ -331,20 +357,59 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
         else:
             self._update_icon_theme('default')
         # choose a a color scheme that goes well with the selected style
+        # (pour COBOL comme pour Python)
+        target = 'qt' if native else 'darcula'
+        self._color_schemes = {'cobol': target, 'python': target}
+        self._select_color_scheme(target)
+
+    def _setup_language_color_selector(self):
+        """
+        Ajoute au-dessus de la liste des thèmes un choix du langage (COBOL /
+        Python), avec un aperçu propre à chaque langage : chaque langage a
+        son thème de couleurs.
+        """
+        g = self.gridLayout_4
+        g.removeWidget(self.listWidgetColorSchemes)
+        g.removeWidget(self.plainTextEdit)
+        bar = QtWidgets.QHBoxLayout()
+        bar.addWidget(QtWidgets.QLabel(tr('Language:'), self.groupBox_7))
+        self.comboColorLanguage = QtWidgets.QComboBox(self.groupBox_7)
+        self.comboColorLanguage.addItem('COBOL', 'cobol')
+        self.comboColorLanguage.addItem('Python / MicroPython', 'python')
+        bar.addWidget(self.comboColorLanguage)
+        bar.addStretch()
+        g.addLayout(bar, 0, 0, 1, 2)
+        g.addWidget(self.listWidgetColorSchemes, 1, 0, 1, 1)
+        g.addWidget(self.plainTextEdit, 1, 1, 1, 1)
+        self.plainTextEditPython = PythonCodeEdit(self.groupBox_7)
+        self.plainTextEditPython.setPlainText(
+            PYTHON_TEMPLATE, 'text/x-python', 'utf-8')
+        self.plainTextEditPython.hide()
+        g.addWidget(self.plainTextEditPython, 1, 1, 1, 1)
+        self._color_schemes = {}
+        self._color_language = 'cobol'
+        self.comboColorLanguage.currentIndexChanged.connect(
+            self._on_color_language_changed)
+
+    def _on_color_language_changed(self, index):
+        self._color_language = self.comboColorLanguage.itemData(index)
+        self.plainTextEdit.setVisible(self._color_language == 'cobol')
+        self.plainTextEditPython.setVisible(self._color_language == 'python')
+        self._select_color_scheme(
+            self._color_schemes.get(self._color_language))
+
+    def _select_color_scheme(self, name):
         for i in range(self.listWidgetColorSchemes.count()):
-            if (native and self.listWidgetColorSchemes.item(i).text() ==
-                    'qt'):
-                self.listWidgetColorSchemes.setCurrentRow(i)
-                break
-            elif (not native and
-                    self.listWidgetColorSchemes.item(i).text() == 'darcula'):
+            if self.listWidgetColorSchemes.item(i).text() == name:
                 self.listWidgetColorSchemes.setCurrentRow(i)
                 break
 
     def update_color_scheme_preview(self, item):
         if item:
-            self.plainTextEdit.syntax_highlighter.color_scheme = ColorScheme(
-                item.text())
+            self._color_schemes[self._color_language] = item.text()
+            editor = self.plainTextEditPython \
+                if self._color_language == 'python' else self.plainTextEdit
+            editor.syntax_highlighter.color_scheme = ColorScheme(item.text())
 
     def setupUi(self, Dialog):
         super().setupUi(Dialog)
@@ -409,14 +474,13 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
             self.fontComboBox.setCurrentFont(QtGui.QFont(settings.font))
             self.spinBoxFontSize.setValue(settings.font_size)
             self.listWidgetColorSchemes.clear()
-            current_index = None
-            self.listWidgetColorSchemes.clear()
             for style in PYGMENTS_STYLES:
                 self.listWidgetColorSchemes.addItem(style)
-                if style == settings.color_scheme:
-                    current_index = self.listWidgetColorSchemes.count() - 1
-            if current_index:
-                self.listWidgetColorSchemes.setCurrentRow(current_index)
+            self._color_schemes = {
+                'cobol': settings.color_scheme,
+                'python': settings.python_color_scheme}
+            self._select_color_scheme(
+                self._color_schemes[self._color_language])
         # Run
         if self.tabWidget.currentIndex() == 3 or all_tabs:
             self.checkBoxRunExtTerm.setChecked(settings.external_terminal)
@@ -597,7 +661,10 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
         settings.dark_style = self.radioButtonColorDark.isChecked()
         settings.font = self.fontComboBox.currentFont().family()
         settings.font_size = self.spinBoxFontSize.value()
-        settings.color_scheme = self.listWidgetColorSchemes.currentItem().text()
+        settings.color_scheme = self._color_schemes.get(
+            'cobol', settings.color_scheme)
+        settings.python_color_scheme = self._color_schemes.get(
+            'python', settings.python_color_scheme)
         settings.external_terminal = self.checkBoxRunExtTerm.isChecked()
         settings.external_terminal_command = self.lineEditRunTerm.text()
         settings.lower_case_keywords = self.rbLowerCaseKwds.isChecked()
