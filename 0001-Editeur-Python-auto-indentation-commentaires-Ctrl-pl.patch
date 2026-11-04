@@ -1,0 +1,423 @@
+From 0e105da68e666e15d0c1df13d0fca5cdf21ab126 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 2 Nov 2026 22:45:05 +0000
+Subject: [PATCH] Editeur Python : auto-indentation, commentaires Ctrl+/, plan
+ du fichier, filtre d'ouverture
+
+---
+ open_cobol_ide/app.py                   |   4 +
+ open_cobol_ide/controllers/edit.py      |   3 +-
+ open_cobol_ide/controllers/file.py      |   3 +-
+ open_cobol_ide/python_outline.py        |  93 +++++++++++
+ open_cobol_ide/translations/fr.json     |   1 +
+ open_cobol_ide/view/editors/__init__.py |   5 +
+ open_cobol_ide/view/editors/python.py   | 205 ++++++++++++++++++++++++
+ 7 files changed, 312 insertions(+), 2 deletions(-)
+ create mode 100644 open_cobol_ide/python_outline.py
+ create mode 100644 open_cobol_ide/view/editors/python.py
+
+diff --git a/open_cobol_ide/app.py b/open_cobol_ide/app.py
+index 3ad3fd4..c11502e 100644
+--- a/open_cobol_ide/app.py
++++ b/open_cobol_ide/app.py
+@@ -21,6 +21,7 @@ from open_cobol_ide.compilers import check_compiler, CompilerNotFound, \
+     GnuCobolCompiler
+ from open_cobol_ide.settings import Settings
+ from open_cobol_ide.view.main_window import MainWindow
++from open_cobol_ide.view.editors import PythonCodeEdit
+ from open_cobol_ide.view.dialogs.about import DlgAbout
+ 
+ 
+@@ -44,6 +45,9 @@ class Application(QtCore.QObject):
+         for ext in Settings().all_extensions:
+             mimetypes.add_type('text/x-cobol', ext)
+             mimetypes.add_type('text/x-cobol', ext.upper())
++        # le registre Windows peut donner un autre type aux .py
++        for ext in PythonCodeEdit.extensions:
++            mimetypes.add_type('text/x-python', ext)
+ 
+     def __init__(self, parse_args=True):
+         super().__init__()
+diff --git a/open_cobol_ide/controllers/edit.py b/open_cobol_ide/controllers/edit.py
+index e88d64d..3563d99 100644
+--- a/open_cobol_ide/controllers/edit.py
++++ b/open_cobol_ide/controllers/edit.py
+@@ -13,6 +13,7 @@ from open_cobol_ide.enums import FileType
+ from ..view.dialogs.preferences import DlgPreferences
+ from ..settings import Settings
+ from ..view.editors import CobolCodeEdit, GenericCodeEdit, TextEdit, \
++    PythonCodeEdit, \
+     update_editor_settings
+ from ..view.widgets import FSContextMenu
+ 
+@@ -26,7 +27,7 @@ class EditController(Controller):
+     Controls the edit view (and the edit menu).
+     """
+     #: the list of supported editor types
+-    editor_types = [CobolCodeEdit, GenericCodeEdit, TextEdit]
++    editor_types = [CobolCodeEdit, PythonCodeEdit, GenericCodeEdit, TextEdit]
+ 
+     @property
+     def current_editor(self):
+diff --git a/open_cobol_ide/controllers/file.py b/open_cobol_ide/controllers/file.py
+index 8bcd164..0218f6f 100644
+--- a/open_cobol_ide/controllers/file.py
++++ b/open_cobol_ide/controllers/file.py
+@@ -102,7 +102,8 @@ class FileController(Controller):
+         paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
+             self.main_window, tr('Open a file'), directory=Settings().last_path,
+             filter=widgets.splittable_tab_widget.CodeEditTabWidget.get_filter(
+-                'text/x-cobol') + tr(';;Other files (*)'))
++                'text/x-cobol') + ';;' + tr('Python files') +
++                ' (*.py *.pyw *.pyi)' + tr(';;Other files (*)'))
+         if paths:
+             for path in paths:
+                 self.open_file(path)
+diff --git a/open_cobol_ide/python_outline.py b/open_cobol_ide/python_outline.py
+new file mode 100644
+index 0000000..6cdaff5
+--- /dev/null
++++ b/open_cobol_ide/python_outline.py
+@@ -0,0 +1,93 @@
++"""
++Plan (outline) d'un fichier Python : classes, fonctions, méthodes et variables
++de premier niveau.
++
++Cette fonction est exécutée dans le processus backend (voir
++pyqode.core.modes.OutlineMode) : elle ne doit donc dépendre ni de Qt ni de
++l'interface.
++"""
++import ast
++
++from pyqode.core.share import Definition
++
++# icônes fournies par les ressources de pyqode.cobol (thème, ressource Qt)
++ICON_CLASS = ['code-class', ':/icons/share/icons/pyqode.cobol/class.png']
++ICON_FUNC = ['code-function', ':/icons/share/icons/pyqode.cobol/func.png']
++ICON_VAR = ['code-variable', ':/icons/share/icons/pyqode.cobol/var.png']
++
++
++def _short(text, size=60):
++    text = ' '.join(text.split())
++    return text if len(text) <= size else text[:size - 1] + '…'
++
++
++def _signature(node):
++    prefix = 'async def ' if isinstance(node, ast.AsyncFunctionDef) else 'def '
++    try:
++        args = ast.unparse(node.args)
++    except Exception:
++        args = '...'
++    return '%s%s(%s)' % (prefix, node.name, args)
++
++
++def _variables(node):
++    """Noms simples affectés par une instruction (a = 1, a: int = 1)."""
++    if isinstance(node, ast.Assign):
++        targets = node.targets
++    elif isinstance(node, ast.AnnAssign):
++        targets = [node.target]
++    else:
++        return
++    value = getattr(node, 'value', None)
++    for target in targets:
++        if isinstance(target, ast.Name):
++            yield target.id, value
++
++
++def _walk(body, depth=0):
++    for node in body:
++        if isinstance(node, ast.ClassDef):
++            bases = ', '.join(_short(ast.unparse(b)) for b in node.bases)
++            definition = Definition(
++                node.name, node.lineno - 1, node.col_offset, ICON_CLASS,
++                'class %s(%s)' % (node.name, bases) if bases
++                else 'class %s' % node.name)
++            definition.children = list(_walk(node.body, depth + 1))
++            yield definition
++        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
++            # les fonctions imbriquées dans une fonction ne sont pas listées
++            yield Definition(node.name, node.lineno - 1, node.col_offset,
++                             ICON_FUNC, _signature(node))
++        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
++            for name, value in _variables(node):
++                if name.startswith('__') and name.endswith('__'):
++                    continue
++                yield Definition(
++                    name, node.lineno - 1, node.col_offset, ICON_VAR,
++                    _short('%s = %s' % (name, ast.unparse(value)))
++                    if value is not None else name)
++        elif isinstance(node, ast.If):
++            # if __name__ == '__main__': ... / code spécifique à une carte
++            yield from _walk(node.body, depth)
++            yield from _walk(node.orelse, depth)
++        elif isinstance(node, ast.Try):
++            yield from _walk(node.body, depth)
++            for handler in node.handlers:
++                yield from _walk(handler.body, depth)
++            yield from _walk(node.orelse, depth)
++            yield from _walk(node.finalbody, depth)
++        elif isinstance(node, ast.With):
++            yield from _walk(node.body, depth)
++
++
++def get_python_outline(data):
++    """
++    Worker du mode d'outline : renvoie la liste des définitions de premier
++    niveau, ou None si le code est (momentanément) invalide, auquel cas le
++    plan précédent est conservé.
++    """
++    try:
++        tree = ast.parse(data['code'])
++    except (SyntaxError, ValueError, RecursionError):
++        return None
++    return [d.to_dict() for d in _walk(tree.body)]
+diff --git a/open_cobol_ide/translations/fr.json b/open_cobol_ide/translations/fr.json
+index 07eeceb..7de43e4 100644
+--- a/open_cobol_ide/translations/fr.json
++++ b/open_cobol_ide/translations/fr.json
+@@ -86,6 +86,7 @@
+   "Failed to restore preferences. See the log for more information...": "Impossible de restaurer les préférences. Consultez le journal pour plus d’informations...",
+   "Export preferences failure": "Échec de l’export des préférences",
+   "Failed to export preferences. See the log for more information...": "Impossible d’exporter les préférences. Consultez le journal pour plus d’informations...",
++  "Python files": "Fichiers Python",
+   "Restory factory defaults?": "Restaurer les valeurs par défaut ?",
+   "Are you sure you want to restore factory defaults?\n\nClicking yes will remove all your preferences and restart the IDE with clean settings. Use this only if you're experiencing a problem!": "Voulez-vous vraiment restaurer les valeurs par défaut ?\n\nCliquer sur Oui supprimera toutes vos préférences et redémarrera l’EDI avec des réglages vierges. À n’utiliser qu’en cas de problème !",
+   "Comment/Uncomment": "Commenter/décommenter",
+diff --git a/open_cobol_ide/view/editors/__init__.py b/open_cobol_ide/view/editors/__init__.py
+index bc49293..62f1c12 100644
+--- a/open_cobol_ide/view/editors/__init__.py
++++ b/open_cobol_ide/view/editors/__init__.py
+@@ -2,6 +2,7 @@ from pyqode.qt import QtGui
+ from pyqode.core.api import ColorScheme
+ from .cobol import CobolCodeEdit
+ from .generic import GenericCodeEdit
++from .python import PythonCodeEdit
+ from .text import TextEdit
+ 
+ 
+@@ -15,6 +16,10 @@ def update_editor_settings(editor):
+     editor.show_whitespaces = settings.show_whitespaces
+     editor.syntax_highlighter.color_scheme = ColorScheme(settings.color_scheme)
+     editor.panels.get('FoldingPanel').native_look = not settings.dark_style
++    if hasattr(editor, 'apply_ide_settings'):
++        # editeur qui applique lui-même ses préférences (Python)
++        editor.apply_ide_settings(settings)
++        return
+     try:
+         # cobol editor specific settings
+         editor.backspace_mode.enabled = settings.enable_smart_backspace
+diff --git a/open_cobol_ide/view/editors/python.py b/open_cobol_ide/view/editors/python.py
+new file mode 100644
+index 0000000..150b43a
+--- /dev/null
++++ b/open_cobol_ide/view/editors/python.py
+@@ -0,0 +1,205 @@
++"""
++Éditeur de code Python / MicroPython.
++
++Il s'appuie sur l'éditeur générique de pyqode (coloration Pygments, repliage
++par indentation, complétion sur les mots du document) et ajoute :
++    - une auto-indentation adaptée à Python (après ':' et les parenthèses
++      ouvertes, retrait après return/pass/break/continue/raise),
++    - le commentaire / décommentaire de lignes avec Ctrl+/,
++    - le plan du fichier (classes, fonctions, méthodes, variables).
++"""
++import re
++
++from pyqode.core import modes
++from pyqode.core.api import Mode
++from pyqode.core.modes import AutoIndentMode
++from pyqode.qt import QtGui, QtWidgets, QtCore
++
++from open_cobol_ide.python_outline import get_python_outline
++from open_cobol_ide.translation import tr
++from .generic import GenericCodeEdit
++
++_DEDENT_RE = re.compile(r'(return|pass|break|continue|raise)\b')
++
++
++def scan_line(line):
++    """
++    Analyse une ligne de code Python.
++
++    :return: (code sans commentaire, profondeur de parenthèses, guillemet
++             encore ouvert en fin de ligne ou None)
++    """
++    quote = None
++    depth = 0
++    out = []
++    i = 0
++    while i < len(line):
++        c = line[i]
++        if quote:
++            if c == '\\':
++                out.append(line[i:i + 2])
++                i += 2
++                continue
++            if line.startswith(quote, i):
++                out.append(quote)
++                i += len(quote)
++                quote = None
++                continue
++            out.append(c)
++        else:
++            if c == '#':
++                break
++            if c in '"\'':
++                quote = c * 3 if line.startswith(c * 3, i) else c
++                out.append(quote)
++                i += len(quote)
++                continue
++            if c in '([{':
++                depth += 1
++            elif c in ')]}':
++                depth -= 1
++            out.append(c)
++        i += 1
++    return ''.join(out), depth, quote
++
++
++class PythonAutoIndentMode(AutoIndentMode):
++    """
++    Indentation automatique à l'appui sur Entrée : reprend l'indentation de la
++    ligne courante, avec un niveau de plus après ':' ou une parenthèse
++    ouverte, et un niveau de moins après return/pass/break/continue/raise.
++    """
++
++    def _get_indent(self, cursor):
++        pre, post = super()._get_indent(cursor)
++        line = cursor.block().text()[:cursor.positionInBlock()]
++        code, depth, quote = scan_line(line)
++        if quote is not None:
++            return pre, post   # on est dans une chaîne
++        code = code.rstrip()
++        unit = ' ' * self.editor.tab_length
++        if depth > 0 or code.endswith((':', '\\')):
++            post += unit
++        elif _DEDENT_RE.match(code.lstrip()) and len(post) >= len(unit):
++            post = post[:-len(unit)]
++        return pre, post
++
++
++class HashCommentsMode(Mode):
++    """
++    Commente / décommente les lignes sélectionnées avec Ctrl+/ (la ligne
++    courante si rien n'est sélectionné, puis le curseur passe à la suivante).
++    """
++
++    def on_state_changed(self, state):
++        if state:
++            self.action = QtWidgets.QAction(tr('Comment/Uncomment'),
++                                            self.editor)
++            self.action.setShortcut('Ctrl+/')
++            self.action.triggered.connect(self.comment)
++            self.editor.add_action(self.action, sub_menu=None)
++            self.editor.key_pressed.connect(self._on_key_pressed)
++        else:
++            self.editor.remove_action(self.action, sub_menu=None)
++            self.action.triggered.disconnect(self.comment)
++            self.editor.key_pressed.disconnect(self._on_key_pressed)
++
++    def _on_key_pressed(self, event):
++        # le « / » du pavé numérique n'active pas toujours le raccourci
++        ctrl = event.modifiers() & QtCore.Qt.ControlModifier
++        if ctrl and event.key() == QtCore.Qt.Key_Slash:
++            self.comment()
++            event.accept()
++
++    def _selected_blocks(self):
++        doc = self.editor.document()
++        cursor = self.editor.textCursor()
++        first = doc.findBlock(cursor.selectionStart())
++        last = doc.findBlock(cursor.selectionEnd())
++        if (cursor.hasSelection() and last.blockNumber() > first.blockNumber()
++                and cursor.selectionEnd() == last.position()):
++            last = last.previous()   # sélection finissant en début de ligne
++        blocks = []
++        block = first
++        while block.isValid():
++            blocks.append(block)
++            if block.blockNumber() >= last.blockNumber():
++                break
++            block = block.next()
++        return blocks
++
++    def comment(self):
++        has_selection = self.editor.textCursor().hasSelection()
++        blocks = self._selected_blocks()
++        texts = [b.text() for b in blocks if b.text().strip()]
++        if not texts:
++            return
++        uncomment = all(t.lstrip().startswith('#') for t in texts)
++        indent = min(len(t) - len(t.lstrip()) for t in texts)
++        edit = QtGui.QTextCursor(self.editor.document())
++        edit.beginEditBlock()
++        for block in blocks:
++            text = block.text()
++            if not text.strip():
++                continue
++            c = QtGui.QTextCursor(block)
++            if uncomment:
++                pos = len(text) - len(text.lstrip())
++                c.setPosition(block.position() + pos)
++                size = 2 if text[pos:pos + 2] == '# ' else 1
++                c.movePosition(c.Right, c.KeepAnchor, size)
++                c.removeSelectedText()
++            else:
++                c.setPosition(block.position() + indent)
++                c.insertText('# ')
++        edit.endEditBlock()
++        if not has_selection:
++            cursor = self.editor.textCursor()
++            cursor.movePosition(cursor.Down, cursor.MoveAnchor)
++            self.editor.setTextCursor(cursor)
++
++
++class PythonCodeEdit(GenericCodeEdit):
++    """
++    Éditeur Python / MicroPython.
++    """
++    mimetypes = ['text/x-python']
++    extensions = ['.py', '.pyw', '.pyi']
++
++    def __init__(self, parent=None):
++        super().__init__(parent)
++        self.modes.remove('AutoIndentMode')
++        self.auto_indent_mode = self.modes.append(PythonAutoIndentMode())
++        self.comments_mode = self.modes.append(HashCommentsMode())
++        self.outline_mode = self.modes.append(
++            modes.OutlineMode(get_python_outline))
++        self.app = None
++
++    def apply_ide_settings(self, settings):
++        """
++        Applique les préférences de l'IDE qui concernent cet éditeur (les
++        autres, propres à COBOL, sont ignorées).
++        """
++        self.auto_indent_mode.enabled = settings.enable_autoindent
++        self.modes.get('CaretLineHighlighterMode').enabled = \
++            settings.highlight_caret
++        line_nbr = self.panels.get('LineNumberPanel')
++        line_nbr.enabled = settings.display_lines
++        line_nbr.setVisible(settings.display_lines)
++        completion = self.modes.get('CodeCompletionMode')
++        completion.trigger_length = settings.code_completion_trigger_len
++        completion.smart_completion = bool(settings.completion_filter_mode)
++        self.file.autodetect_eol = settings.autodetect_eol
++        self.file.preferred_eol = settings.preferred_eol
++
++    def close(self, clear=True):
++        self.auto_indent_mode = None
++        self.comments_mode = None
++        self.outline_mode = None
++        super().close(clear=clear)
++        self.app = None
++
++    def clone(self):
++        clone = self.__class__(parent=self.parent())
++        clone.app = self.app
++        return clone
+-- 
+2.43.0
+

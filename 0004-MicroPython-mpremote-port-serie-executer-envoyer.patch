@@ -1,0 +1,381 @@
+From 910fd42788b8e73a142514a0ade9975aafd19aa6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 10:08:19 +0000
+Subject: [PATCH] Menu Python > MicroPython : port serie, executer/envoyer sur
+ la carte, fichiers, reset, REPL (mpremote)
+
+---
+ open_cobol_ide/app.py                     |   4 +-
+ open_cobol_ide/controllers/__init__.py    |   1 +
+ open_cobol_ide/controllers/micropython.py | 236 ++++++++++++++++++++++
+ open_cobol_ide/controllers/python.py      |  12 +-
+ open_cobol_ide/settings.py                |   9 +
+ open_cobol_ide/translations/fr.json       |  20 ++
+ 6 files changed, 280 insertions(+), 2 deletions(-)
+ create mode 100644 open_cobol_ide/controllers/micropython.py
+
+diff --git a/open_cobol_ide/app.py b/open_cobol_ide/app.py
+index 078fda7..728f4cd 100644
+--- a/open_cobol_ide/app.py
++++ b/open_cobol_ide/app.py
+@@ -15,7 +15,7 @@ from open_cobol_ide.translation import tr
+ from open_cobol_ide import __version__, logger, system
+ from open_cobol_ide.controllers import (
+     CobolController, EditController, FileController, HelpController,
+-    HomeController, PythonController, ViewController)
++    HomeController, MicroPythonController, PythonController, ViewController)
+ from open_cobol_ide.controllers.cobol import CompilationThread
+ from open_cobol_ide.compilers import check_compiler, CompilerNotFound, \
+     GnuCobolCompiler
+@@ -83,6 +83,7 @@ class Application(QtCore.QObject):
+         self.edit = EditController(self)
+         self.cobol = CobolController(self)
+         self.python = PythonController(self)
++        self.micropython = MicroPythonController(self)
+         self.help = HelpController(self)
+         self.win.app = self
+ 
+@@ -120,6 +121,7 @@ class Application(QtCore.QObject):
+         self.view = None
+         self.cobol = None
+         self.python = None
++        self.micropython = None
+         self.edit = None
+         self.file = None
+         self.win = None
+diff --git a/open_cobol_ide/controllers/__init__.py b/open_cobol_ide/controllers/__init__.py
+index aa827f6..44bb4cd 100644
+--- a/open_cobol_ide/controllers/__init__.py
++++ b/open_cobol_ide/controllers/__init__.py
+@@ -12,4 +12,5 @@ from .file import FileController
+ from .help import HelpController
+ from .home import HomeController
+ from .python import PythonController
++from .micropython import MicroPythonController
+ from .view import ViewController
+diff --git a/open_cobol_ide/controllers/micropython.py b/open_cobol_ide/controllers/micropython.py
+new file mode 100644
+index 0000000..34d435d
+--- /dev/null
++++ b/open_cobol_ide/controllers/micropython.py
+@@ -0,0 +1,236 @@
++"""
++Contrôleur MicroPython : sous-menu du menu Python pour travailler avec une
++carte reliée en USB (port COM virtuel), au moyen de ``mpremote``.
++
++``mpremote`` n'est pas embarqué dans l'IDE : il est lancé avec l'interpréteur
++Python choisi dans le menu Python (``python -m mpremote``). Si le module
++manque, l'IDE propose de l'installer avec pip.
++"""
++import logging
++import os
++import subprocess
++import sys
++
++from pyqode.qt import QtWidgets
++
++from open_cobol_ide.settings import Settings
++from open_cobol_ide.translation import tr
++from .base import Controller
++from .cobol import LOG_PAGE_RUN
++from .python import child_environment, find_interpreter, no_window_kwargs
++
++
++def _logger():
++    return logging.getLogger(__name__)
++
++
++def parse_port_list(text):
++    """
++    Analyse la sortie de ``mpremote connect list`` : une ligne par carte, le
++    premier mot étant le nom du port (COM5, /dev/ttyACM0...).
++
++    :return: liste de (port, ligne de description)
++    """
++    ports = []
++    for line in text.splitlines():
++        parts = line.split(None, 1)
++        if parts:
++            ports.append((parts[0], line.strip()))
++    return ports
++
++
++class MicroPythonController(Controller):
++    """
++    Contrôle le sous-menu MicroPython.
++    """
++    def __init__(self, app):
++        super().__init__(app)
++        menu = self.app.python.menu
++        menu.addSeparator()
++        self.submenu = menu.addMenu(tr('&MicroPython'))
++        self.actionPort = self._add(tr('Board &port...'), self.choose_port)
++        self.actionRun = self._add(
++            tr('&Run on the board'), self.run_on_board, 'Shift+F5')
++        self.actionSend = self._add(
++            tr('&Send to the board...'), self.send_to_board)
++        self.actionFiles = self._add(
++            tr('&Files on the board'), self.list_files)
++        self.actionReset = self._add(
++            tr('Soft re&set the board'), self.soft_reset)
++        self.actionRepl = self._add(
++            tr('Open the R&EPL in a window'), self.open_repl)
++        self.submenu.addSeparator()
++        self.actionInstall = self._add(
++            tr('&Install or update mpremote'), self.install_mpremote)
++
++    def _add(self, text, slot, shortcut=None):
++        action = QtWidgets.QAction(text, self.main_window)
++        if shortcut:
++            action.setShortcut(shortcut)
++        action.triggered.connect(lambda checked=False: slot())
++        self.submenu.addAction(action)
++        return action
++
++    # ------------------------------------------------------------ outils
++    def _info(self, title, text):
++        QtWidgets.QMessageBox.information(self.main_window, title, text)
++
++    @staticmethod
++    def _has_mpremote(interpreter):
++        try:
++            return subprocess.run(
++                [interpreter, '-c', 'import mpremote'], capture_output=True,
++                timeout=30, **no_window_kwargs()).returncode == 0
++        except Exception:
++            return False
++
++    def _prepare(self):
++        """
++        Vérifie que la console est libre, qu'un interpréteur Python est
++        disponible et que mpremote est installé.
++
++        :return: le chemin de l'interpréteur, ou None
++        """
++        if self.ui.consoleOutput.is_running:
++            self._info(tr('Console busy'),
++                       tr('A program is already running in the console.'))
++            return None
++        interpreter = find_interpreter() or self.app.python.choose_interpreter()
++        if not interpreter:
++            return None
++        if not self._has_mpremote(interpreter):
++            answer = QtWidgets.QMessageBox.question(
++                self.main_window, tr('mpremote not installed'),
++                tr('The mpremote tool is not installed for this Python '
++                   'interpreter.\n\nInstall it now with pip?'))
++            if answer == QtWidgets.QMessageBox.Yes:
++                self._start(interpreter,
++                            ['-m', 'pip', 'install', '--upgrade', 'mpremote'])
++            return None
++        return interpreter
++
++    @staticmethod
++    def _args(*args):
++        """Arguments de ``python`` pour lancer mpremote vers la bonne carte."""
++        cmd = ['-u', '-m', 'mpremote']
++        port = Settings().micropython_port
++        if port:
++            cmd += ['connect', port]
++        return cmd + list(args)
++
++    def _start(self, interpreter, arguments, working_dir=None):
++        ui = self.ui
++        ui.tabWidgetLogs.setCurrentIndex(LOG_PAGE_RUN)
++        ui.dockWidgetLogs.show()
++        self.app.cobol.enable_run(False)
++        _logger().info('running %r %r', interpreter, arguments)
++        ui.consoleOutput.start_process(
++            interpreter, arguments, working_dir=working_dir,
++            env=child_environment(), print_command=True)
++
++    def _current_python_file(self):
++        editor = self.app.edit.current_editor
++        if not self.app.python.is_python(editor):
++            return None
++        self.ui.tabWidgetEditors.save_all()
++        return editor.file.path
++
++    # ------------------------------------------------------------ actions
++    def choose_port(self):
++        interpreter = self._prepare()
++        if not interpreter:
++            return
++        try:
++            result = subprocess.run(
++                [interpreter, '-m', 'mpremote', 'connect', 'list'],
++                capture_output=True, timeout=30, encoding='utf-8',
++                errors='replace', env=dict(os.environ, **child_environment()),
++                **no_window_kwargs())
++        except Exception as e:
++            self._info(tr('Board port'), str(e))
++            return
++        ports = parse_port_list(result.stdout)
++        if not ports:
++            self._info(
++                tr('Board port'),
++                tr('No board detected.\n\nCheck the USB cable and that no '
++                   'other program (Thonny, a terminal...) uses the port.'))
++            return
++        labels = [tr('Automatic detection')] + [line for _, line in ports]
++        current = Settings().micropython_port
++        index = 0
++        for i, (device, _) in enumerate(ports, 1):
++            if device == current:
++                index = i
++        label, ok = QtWidgets.QInputDialog.getItem(
++            self.main_window, tr('Board port'),
++            tr('Serial port of the board:'), labels, index, False)
++        if ok:
++            position = labels.index(label)
++            Settings().micropython_port = \
++                '' if position == 0 else ports[position - 1][0]
++
++    def run_on_board(self):
++        """Exécute le fichier courant sur la carte, sans l'y enregistrer."""
++        path = self._current_python_file()
++        if path is None:
++            return
++        interpreter = self._prepare()
++        if interpreter:
++            self._start(interpreter, self._args('run', path),
++                        os.path.dirname(path))
++
++    def send_to_board(self):
++        """Copie le fichier courant sur la carte (par exemple en main.py)."""
++        path = self._current_python_file()
++        if path is None:
++            return
++        name, ok = QtWidgets.QInputDialog.getText(
++            self.main_window, tr('Send to the board'),
++            tr('File name on the board:'), QtWidgets.QLineEdit.Normal,
++            os.path.basename(path))
++        name = name.strip().lstrip(':/') if ok else ''
++        if not name:
++            return
++        interpreter = self._prepare()
++        if interpreter:
++            self._start(interpreter, self._args('cp', path, ':' + name),
++                        os.path.dirname(path))
++
++    def list_files(self):
++        interpreter = self._prepare()
++        if interpreter:
++            self._start(interpreter, self._args('fs', 'ls'))
++
++    def soft_reset(self):
++        interpreter = self._prepare()
++        if interpreter:
++            self._start(interpreter, self._args('soft-reset'))
++
++    def open_repl(self):
++        """
++        Ouvre le REPL de la carte dans une fenêtre console séparée (mpremote
++        a besoin d'un vrai terminal : la console de l'IDE ne convient pas).
++        """
++        if sys.platform != 'win32':
++            self._info(tr('REPL'),
++                       tr('The REPL window is only available on Windows. Run '
++                          '"python -m mpremote repl" in a terminal.'))
++            return
++        interpreter = self._prepare()
++        if not interpreter:
++            return
++        subprocess.Popen(
++            [interpreter] + self._args('repl'),
++            creationflags=subprocess.CREATE_NEW_CONSOLE,
++            env=dict(os.environ, **child_environment()))
++
++    def install_mpremote(self):
++        if self.ui.consoleOutput.is_running:
++            self._info(tr('Console busy'),
++                       tr('A program is already running in the console.'))
++            return
++        interpreter = find_interpreter() or self.app.python.choose_interpreter()
++        if interpreter:
++            self._start(interpreter,
++                        ['-m', 'pip', 'install', '--upgrade', 'mpremote'])
+diff --git a/open_cobol_ide/controllers/python.py b/open_cobol_ide/controllers/python.py
+index 0aa194a..42581c4 100644
+--- a/open_cobol_ide/controllers/python.py
++++ b/open_cobol_ide/controllers/python.py
+@@ -49,6 +49,16 @@ def split_arguments(text):
+     return args
+ 
+ 
++def no_window_kwargs():
++    """
++    Arguments de subprocess pour ne pas faire clignoter une fenêtre console
++    (l'IDE est une application graphique) lors d'un appel de courte durée.
++    """
++    if sys.platform == 'win32':
++        return {'creationflags': subprocess.CREATE_NO_WINDOW}
++    return {}
++
++
+ def find_interpreter():
+     """
+     Interpréteur Python à utiliser : celui des préférences, sinon le premier
+@@ -129,7 +139,7 @@ class PythonController(Controller):
+             return None
+         try:
+             subprocess.run([path, '--version'], capture_output=True,
+-                           timeout=10, check=True)
++                           timeout=10, check=True, **no_window_kwargs())
+         except Exception as e:
+             QtWidgets.QMessageBox.warning(
+                 self.main_window, tr('Invalid interpreter'),
+diff --git a/open_cobol_ide/settings.py b/open_cobol_ide/settings.py
+index 67eb4be..ec3c897 100644
+--- a/open_cobol_ide/settings.py
++++ b/open_cobol_ide/settings.py
+@@ -976,6 +976,15 @@ class Settings(object):
+         self._settings.setValue('pythonInterpreter',
+                                 system.to_portable(str(value)))
+ 
++    @property
++    def micropython_port(self):
++        """Port série de la carte MicroPython ('' = détection automatique)."""
++        return str(self._settings.value('micropythonPort', ''))
++
++    @micropython_port.setter
++    def micropython_port(self, value):
++        self._settings.setValue('micropythonPort', str(value))
++
+     @property
+     def python_arguments(self):
+         return str(self._settings.value('pythonArguments', ''))
+diff --git a/open_cobol_ide/translations/fr.json b/open_cobol_ide/translations/fr.json
+index 22d5904..818a4e5 100644
+--- a/open_cobol_ide/translations/fr.json
++++ b/open_cobol_ide/translations/fr.json
+@@ -89,6 +89,26 @@
+   "Python files": "Fichiers Python",
+   "Restory factory defaults?": "Restaurer les valeurs par défaut ?",
+   "Are you sure you want to restore factory defaults?\n\nClicking yes will remove all your preferences and restart the IDE with clean settings. Use this only if you're experiencing a problem!": "Voulez-vous vraiment restaurer les valeurs par défaut ?\n\nCliquer sur Oui supprimera toutes vos préférences et redémarrera l’EDI avec des réglages vierges. À n’utiliser qu’en cas de problème !",
++  "&MicroPython": "&MicroPython",
++  "Board &port...": "&Port de la carte...",
++  "&Run on the board": "&Exécuter sur la carte",
++  "&Send to the board...": "En&voyer sur la carte...",
++  "&Files on the board": "&Fichiers de la carte",
++  "Soft re&set the board": "Redémarrer la &carte (soft reset)",
++  "Open the R&EPL in a window": "&REPL dans une fenêtre",
++  "&Install or update mpremote": "&Installer ou mettre à jour mpremote",
++  "Board port": "Port de la carte",
++  "Serial port of the board:": "Port série de la carte :",
++  "Send to the board": "Envoyer sur la carte",
++  "File name on the board:": "Nom du fichier sur la carte :",
++  "Console busy": "Console occupée",
++  "A program is already running in the console.": "Un programme est déjà en cours d'exécution dans la console.",
++  "mpremote not installed": "mpremote n'est pas installé",
++  "The mpremote tool is not installed for this Python interpreter.\n\nInstall it now with pip?": "L'outil mpremote n'est pas installé pour cet interpréteur Python.\n\nL'installer maintenant avec pip ?",
++  "No board detected.\n\nCheck the USB cable and that no other program (Thonny, a terminal...) uses the port.": "Aucune carte détectée.\n\nVérifiez le câble USB et qu'aucun autre programme (Thonny, un terminal...) n'utilise le port.",
++  "Automatic detection": "Détection automatique",
++  "REPL": "REPL",
++  "The REPL window is only available on Windows. Run \"python -m mpremote repl\" in a terminal.": "La fenêtre REPL n'est disponible que sous Windows. Lancez « python -m mpremote repl » dans un terminal.",
+   "&Python": "&Python",
+   "Python &interpreter...": "&Interpréteur Python...",
+   "Script &arguments...": "&Arguments du script...",
+-- 
+2.43.0
+
