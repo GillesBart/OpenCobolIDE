@@ -189,9 +189,11 @@ class Settings(object):
         """
         Returns the last used open/save path
         """
-        default_value = system.app_dir()
-        return system.from_portable(
-            self._settings.value('lastUsedPath', default_value))
+        path = system.from_portable(self._settings.value('lastUsedPath', ''))
+        if path and os.path.isdir(path):
+            return path
+        # jamais défini, ou dossier disparu (autre lecteur...) : Documents
+        return system.documents_dir()
 
     @last_path.setter
     def last_path(self, path):
@@ -994,6 +996,15 @@ class Settings(object):
     @micropython_port.setter
     def micropython_port(self, value):
         self._settings.setValue('micropythonPort', str(value))
+
+    @property
+    def micropython_reset(self):
+        """Redémarrer la carte avant d'y exécuter un fichier (défaut : oui)."""
+        return bool(int(self._settings.value('micropythonReset', '1')))
+
+    @micropython_reset.setter
+    def micropython_reset(self, value):
+        self._settings.setValue('micropythonReset', int(bool(value)))
 
     @property
     def python_arguments(self):

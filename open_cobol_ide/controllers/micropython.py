@@ -55,6 +55,10 @@ class MicroPythonController(Controller):
             tr('&Send to the board...'), self.send_to_board)
         self.actionFiles = self._add(
             tr('&Files on the board'), self.list_files)
+        self.actionResetBefore = self._add(
+            tr('Reset the board &before running'), self.toggle_reset)
+        self.actionResetBefore.setCheckable(True)
+        self.actionResetBefore.setChecked(Settings().micropython_reset)
         self.actionReset = self._add(
             tr('Soft re&set the board'), self.soft_reset)
         self.actionRepl = self._add(
@@ -110,12 +114,21 @@ class MicroPythonController(Controller):
         return interpreter
 
     @staticmethod
-    def _args(*args):
-        """Arguments de ``python`` pour lancer mpremote vers la bonne carte."""
+    def _args(*args, reset=False):
+        """
+        Arguments de ``python`` pour lancer mpremote vers la bonne carte.
+
+        Sans ``reset``, la commande ``resume`` est ajoutée : mpremote ne
+        redémarre pas la carte en entrant dans le REPL brut. Il attend sinon
+        le texte anglais « soft reboot », que les cartes dont le système est
+        traduit (CircuitPython en français...) n'envoient pas.
+        """
         cmd = ['-u', '-m', 'mpremote']
         port = Settings().micropython_port
         if port:
             cmd += ['connect', port]
+        if not reset:
+            cmd.append('resume')
         return cmd + list(args)
 
     def _start(self, interpreter, arguments, working_dir=None):
@@ -177,7 +190,8 @@ class MicroPythonController(Controller):
             return
         interpreter = self._prepare()
         if interpreter:
-            self._start(interpreter, self._args('run', path),
+            reset = Settings().micropython_reset
+            self._start(interpreter, self._args('run', path, reset=reset),
                         os.path.dirname(path))
 
     def send_to_board(self):
@@ -202,10 +216,13 @@ class MicroPythonController(Controller):
         if interpreter:
             self._start(interpreter, self._args('fs', 'ls'))
 
+    def toggle_reset(self):
+        Settings().micropython_reset = self.actionResetBefore.isChecked()
+
     def soft_reset(self):
         interpreter = self._prepare()
         if interpreter:
-            self._start(interpreter, self._args('soft-reset'))
+            self._start(interpreter, self._args('soft-reset', reset=True))
 
     def open_repl(self):
         """
@@ -221,7 +238,7 @@ class MicroPythonController(Controller):
         if not interpreter:
             return
         subprocess.Popen(
-            [interpreter] + self._args('repl'),
+            [interpreter] + self._args('repl', reset=True),
             creationflags=subprocess.CREATE_NEW_CONSOLE,
             env=dict(os.environ, **child_environment()))
 

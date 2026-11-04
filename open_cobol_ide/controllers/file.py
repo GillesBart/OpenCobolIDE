@@ -89,7 +89,10 @@ class FileController(Controller):
         if wizard completed sucessfully.
 
         """
-        if path and os.path.isfile(path):
+        if not isinstance(path, str) or not path:
+            # appel depuis un bouton / une action (path = état du bouton)
+            path = Settings().last_path
+        elif os.path.isfile(path):
             path = os.path.abspath(os.path.join(path, os.pardir))
         path = DlgNewFile.create_new_file(self.main_window, path=path)
         if path:
@@ -101,9 +104,9 @@ class FileController(Controller):
         """
         paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self.main_window, tr('Open a file'), directory=Settings().last_path,
-            filter=widgets.splittable_tab_widget.CodeEditTabWidget.get_filter(
-                'text/x-cobol') + ';;' + tr('Python files') +
-                ' (*.py *.pyw *.pyi)' + tr(';;Other files (*)'))
+            filter=tr('COBOL and Python files') + ' (*.cbl *.py);;' +
+            tr('COBOL files') + ' (*.cbl);;' + tr('Python files') +
+            ' (*.py);;' + tr('All files') + ' (*)')
         if paths:
             for path in paths:
                 self.open_file(path)

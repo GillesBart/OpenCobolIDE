@@ -47,7 +47,15 @@ MODULE_TEMPLATE = '''      *****************************************************
        END PROGRAM YOUR-PROGRAM.
 '''
 
-TEMPLATES = [EXE_TEMPLATE, MODULE_TEMPLATE, '']
+PYTHON_TEMPLATE = '''def main():
+    print("Hello world")
+
+
+if __name__ == "__main__":
+    main()
+'''
+
+TEMPLATES = [EXE_TEMPLATE, MODULE_TEMPLATE, PYTHON_TEMPLATE, '']
 
 
 EXE_TEMPLATE_FREE = '''*>****************************************************************
@@ -89,7 +97,10 @@ MAIN-PROCEDURE.
 END PROGRAM YOUR-PROGRAM.
 '''
 
-FREE_TEMPLATES = [EXE_TEMPLATE_FREE, MODULE_TEMPLATE_FREE, '']
+FREE_TEMPLATES = [EXE_TEMPLATE_FREE, MODULE_TEMPLATE_FREE, PYTHON_TEMPLATE, '']
+
+# index dans la liste des types -> extension proposée (None : inchangée)
+TYPE_EXTENSIONS = ['.cbl', '.cbl', '.py', None]
 
 
 class DlgNewFile(QtWidgets.QDialog, dlg_file_type_ui.Ui_Dialog):
@@ -111,9 +122,18 @@ class DlgNewFile(QtWidgets.QDialog, dlg_file_type_ui.Ui_Dialog):
         else:
             self.lineEditPath.setText(path)
         self.prev_pth = ""
-        self.comboBoxExtension.addItems(sorted(Settings().all_extensions))
-        self.comboBoxExtension.addItems(
-            [ext.upper() for ext in Settings().all_extensions])
+        # types : Programme, Module, Script Python, Vide
+        self.comboBoxType.insertItem(2, tr('Python script'))
+        self.comboBoxExtension.addItems(['.cbl', '.py'])
+        self.comboBoxType.currentIndexChanged.connect(self._on_type_changed)
+        self._on_type_changed(self.comboBoxType.currentIndex())
+
+    def _on_type_changed(self, index):
+        ext = TYPE_EXTENSIONS[index] if 0 <= index < len(TYPE_EXTENSIONS) \
+            else None
+        if ext:
+            self.comboBoxExtension.setCurrentIndex(
+                self.comboBoxExtension.findText(ext))
 
     def path(self):
         """
@@ -182,7 +202,11 @@ class DlgNewFile(QtWidgets.QDialog, dlg_file_type_ui.Ui_Dialog):
                     return None
             eol = FileManager.EOL.string(Settings().preferred_eol)
             text = eol.join(dlg.template().splitlines()) + eol
-            data = text.encode(locale.getpreferredencoding())
+            if path.lower().endswith('.py'):
+                # source Python : UTF-8 sans BOM
+                data = text.encode('utf-8')
+            else:
+                data = text.encode(locale.getpreferredencoding())
             with open(path, 'wb') as f:
                 f.write(data)
             return path

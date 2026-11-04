@@ -154,6 +154,21 @@ def app_dir():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def documents_dir():
+    """
+    Dossier Documents de l'utilisateur (repli : son dossier personnel).
+    """
+    try:
+        from pyqode.qt import QtCore
+        path = QtCore.QStandardPaths.writableLocation(
+            QtCore.QStandardPaths.DocumentsLocation)
+        if path and os.path.isdir(path):
+            return os.path.normpath(path)
+    except Exception:
+        pass
+    return os.path.expanduser('~')
+
+
 def data_dir():
     """
     Folder holding everything the IDE writes (settings .ini, cache, logs).
