@@ -124,7 +124,7 @@ class ViewController(Controller):
         irun = QIcon.fromTheme(
             'media-playback-start', QtGui.QIcon(
                 ':/ide-icons/rc/media-playback-start.png'))
-        icancel = QIcon.fromTheme('process-stop')
+        icancel = QtGui.QIcon(':/ide-icons/rc/stop.png')
         ifullscreen = QIcon.fromTheme(
             'view-fullscreen', QtGui.QIcon(
                 ':/ide-icons/rc/view-fullscreen.png'))
@@ -161,6 +161,7 @@ class ViewController(Controller):
         self.ui.actionSaveAs.setIcon(isave_as)
         self.ui.actionRun.setIcon(irun)
         self.ui.actionCancel.setIcon(icancel)
+        self.ui.actionCancel.setText('STOP')
         self.ui.actionCompile.setIcon(icompile)
         self.ui.actionAbout.setIcon(iabout)
         self.ui.btAbout.setIcon(iabout)
