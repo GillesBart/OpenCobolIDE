@@ -21,6 +21,25 @@ def debug(msg, *args):
     return _logger().log(5, msg, *args)
 
 
+def _is_dead_link(path):
+    """
+    Vrai pour un lien ou une jonction de dossier dont on ne peut pas lire le
+    contenu. Sous Windows, ce sont les anciens raccourcis de compatibilité du
+    profil utilisateur (« Mes documents », « Menu Démarrer »...) : cachés dans
+    l'Explorateur, ils ne s'ouvrent pas et ne servent à rien dans l'arbre.
+    """
+    if sys.platform != 'win32':
+        return False
+    is_junction = getattr(os.path, 'isjunction', lambda p: False)
+    try:
+        if not (os.path.islink(path) or is_junction(path)):
+            return False
+        with os.scandir(path):
+            return False
+    except OSError:
+        return True
+
+
 class FileSystemTreeView(QtWidgets.QTreeView):
     """
     Extends QtWidgets.QTreeView with a filterable file system model.
@@ -67,6 +86,8 @@ class FileSystemTreeView(QtWidgets.QTreeView):
             finfo = self.sourceModel().fileInfo(index0)
             fn = finfo.fileName()
             fp = os.path.normpath(finfo.filePath())
+            if finfo.isDir() and _is_dead_link(fp):
+                return False
             if os.path.ismount(self._root):
                 return True
             if fp in self._ignored_unused:
