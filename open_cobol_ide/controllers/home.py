@@ -7,6 +7,7 @@ from pyqode.cobol.api import icons
 from pyqode.cobol.widgets import CobolCodeEdit
 from pyqode.qt import QtCore, QtGui, QtWidgets
 from open_cobol_ide.settings import Settings
+from open_cobol_ide.translation import tr
 from .base import Controller
 
 
@@ -49,6 +50,16 @@ class HomeController(Controller):
             self._update_recents)
         self.ui.btOpenFile.clicked.connect(self.app.file.request_open)
         self.ui.btNewFile.clicked.connect(self.app.file.request_new)
+        # troisième entrée : les fichiers d'une carte MicroPython/CircuitPython
+        self.btBoard = QtWidgets.QPushButton(self.ui.widgetHome)
+        self.btBoard.setMinimumSize(QtCore.QSize(200, 0))
+        self.btBoard.setSizePolicy(self.ui.btOpenFile.sizePolicy())
+        self.btBoard.setText(tr('Board files'))
+        self.btBoard.setToolTip(
+            tr('Open the files of a MicroPython or CircuitPython board'))
+        self.ui.horizontalLayout_8.addWidget(self.btBoard)
+        self.btBoard.clicked.connect(
+            lambda: self.app.micropython.open_board())
         self.ui.listWidgetRecents.itemClicked.connect(
             self._on_recent_item_clicked)
         self.ui.listWidgetRecents.clear_requested.connect(self._clear_recents)

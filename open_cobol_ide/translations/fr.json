@@ -100,6 +100,8 @@
   "COBOL and Python files": "Fichiers COBOL et Python",
   "Restory factory defaults?": "Restaurer les valeurs par défaut ?",
   "Are you sure you want to restore factory defaults?\n\nClicking yes will remove all your preferences and restart the IDE with clean settings. Use this only if you're experiencing a problem!": "Voulez-vous vraiment restaurer les valeurs par défaut ?\n\nCliquer sur Oui supprimera toutes vos préférences et redémarrera l’EDI avec des réglages vierges. À n’utiliser qu’en cas de problème !",
+  "Board files": "Fichiers de la carte",
+  "Open the files of a MicroPython or CircuitPython board": "Ouvrir les fichiers d'une carte MicroPython ou CircuitPython",
   "&MicroPython": "&MicroPython",
   "Board &port...": "&Port de la carte...",
   "&Run on the board": "&Exécuter sur la carte",

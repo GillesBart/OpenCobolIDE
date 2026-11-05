@@ -117,11 +117,11 @@ class BoardFilesPanel(QtCore.QObject):
             QtCore.QFileInfo(system.app_dir()))
 
     # ------------------------------------------------------------ affichage
-    def show_board(self):
+    def show_board(self, refresh=True):
         """Affiche la carte (et recharge sa racine)."""
         if not self.button.isChecked():
             self.button.setChecked(True)      # déclenche _on_toggled
-        else:
+        elif refresh:
             self.refresh()
         self._ui.dockWidgetFileSystem.show()
 

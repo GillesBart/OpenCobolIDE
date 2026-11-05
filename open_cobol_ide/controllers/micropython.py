@@ -30,11 +30,16 @@ def parse_port_list(text):
     Analyse la sortie de ``mpremote connect list`` : une ligne par carte, le
     premier mot étant le nom du port (COM5, /dev/ttyACM0...).
 
+    Les ports sans identifiant USB (0000:0000 : COM1, ports Bluetooth...) sont
+    ignorés : ce ne sont pas des cartes.
+
     :return: liste de (port, ligne de description)
     """
     ports = []
     for line in text.splitlines():
-        parts = line.split(None, 1)
+        parts = line.split(None, 3)
+        if len(parts) >= 3 and parts[2] == '0000:0000':
+            continue
         if parts:
             ports.append((parts[0], line.strip()))
     return ports
@@ -176,9 +181,14 @@ class MicroPythonController(Controller):
 
     # ------------------------------------------------------------ actions
     def choose_port(self):
+        """
+        Demande le port de la carte.
+
+        :return: vrai si un choix a été fait
+        """
         interpreter = self._prepare()
         if not interpreter:
-            return
+            return False
         try:
             result = subprocess.run(
                 [interpreter, '-m', 'mpremote', 'connect', 'list'],
@@ -187,14 +197,14 @@ class MicroPythonController(Controller):
                 **no_window_kwargs())
         except Exception as e:
             self._info(tr('Board port'), str(e))
-            return
+            return False
         ports = parse_port_list(result.stdout)
         if not ports:
             self._info(
                 tr('Board port'),
                 tr('No board detected.\n\nCheck the USB cable and that no '
                    'other program (Thonny, a terminal...) uses the port.'))
-            return
+            return False
         labels = [tr('Automatic detection')] + [line for _, line in ports]
         current = Settings().micropython_port
         index = 0
@@ -209,6 +219,15 @@ class MicroPythonController(Controller):
             Settings().micropython_port = \
                 '' if position == 0 else ports[position - 1][0]
             self.board_files.reset()
+        return bool(ok)
+
+    def open_board(self):
+        """
+        Bouton de la page d'accueil : choisir la carte (les ports virtuels
+        changent d'une carte à l'autre) puis afficher ses fichiers.
+        """
+        if self.choose_port():
+            self.board_files.show_board(refresh=False)
 
     def run_on_board(self):
         """Exécute le fichier courant sur la carte, sans l'y enregistrer."""
