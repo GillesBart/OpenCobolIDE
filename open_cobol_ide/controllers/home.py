@@ -57,7 +57,10 @@ class HomeController(Controller):
         self.btBoard.setText(tr('Board files'))
         self.btBoard.setToolTip(
             tr('Open the files of a MicroPython or CircuitPython board'))
-        self.ui.horizontalLayout_8.addWidget(self.btBoard)
+        self.btBoard.setIcon(QtGui.QIcon(':/ide-icons/rc/database.png'))
+        # avant le ressort de fin de ligne, pour rester à côté des deux autres
+        layout = self.ui.horizontalLayout_8
+        layout.insertWidget(layout.count() - 1, self.btBoard)
         self.btBoard.clicked.connect(
             lambda: self.app.micropython.open_board())
         self.ui.listWidgetRecents.itemClicked.connect(
