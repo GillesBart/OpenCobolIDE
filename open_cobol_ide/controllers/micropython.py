@@ -17,6 +17,7 @@ from open_cobol_ide.settings import Settings
 from open_cobol_ide.translation import tr
 from .base import Controller
 from .cobol import LOG_PAGE_RUN
+from .board_files import BoardFilesPanel
 from .python import child_environment, find_interpreter, no_window_kwargs
 
 
@@ -37,24 +38,6 @@ def parse_port_list(text):
         if parts:
             ports.append((parts[0], line.strip()))
     return ports
-
-
-# Liste récursive des fichiers de la carte. « mpremote fs ls » s'appuie sur
-# os.ilistdir, absent de CircuitPython : on n'utilise ici que os.listdir et
-# os.stat, disponibles partout.
-LIST_FILES_CODE = (
-    "import os\n"
-    "def ls(p, i=''):\n"
-    "    for n in sorted(os.listdir(p)):\n"
-    "        f = p.rstrip('/') + '/' + n\n"
-    "        s = os.stat(f)\n"
-    "        if s[0] & 0x4000:\n"
-    "            print('%8s %s%s/' % ('', i, n))\n"
-    "            ls(f, i + '  ')\n"
-    "        else:\n"
-    "            print('%8d %s%s' % (s[6], i, n))\n"
-    "ls('/')\n"
-)
 
 
 class MicroPythonController(Controller):
@@ -82,6 +65,7 @@ class MicroPythonController(Controller):
         self.actionRepl = self._add(
             tr('Open the R&EPL in a window'), self.open_repl)
         self.submenu.addSeparator()
+        self.board_files = BoardFilesPanel(self)
         self.actionInstall = self._add(
             tr('&Install or update mpremote'), self.install_mpremote)
 
@@ -230,9 +214,7 @@ class MicroPythonController(Controller):
                         os.path.dirname(path))
 
     def list_files(self):
-        interpreter = self._prepare()
-        if interpreter:
-            self._start(interpreter, self._args('exec', LIST_FILES_CODE))
+        self.board_files.show_board()
 
     def toggle_reset(self):
         Settings().micropython_reset = self.actionResetBefore.isChecked()
