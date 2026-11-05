@@ -198,10 +198,19 @@ class BoardFilesPanel(QtCore.QObject):
         else:
             self.open_remote(item.data(0, ROLE_PATH))
 
+    @staticmethod
+    def cache_dir():
+        return os.path.join(system.data_dir(), 'cache', 'board')
+
+    def is_board_file(self, path):
+        """Vrai si ``path`` est la copie locale d'un fichier de la carte."""
+        cache = os.path.normcase(os.path.abspath(self.cache_dir()))
+        path = os.path.normcase(os.path.abspath(path))
+        return path.startswith(cache + os.sep)
+
     def local_path(self, remote):
         return os.path.join(
-            system.data_dir(), 'cache', 'board',
-            *[p for p in remote.split('/') if p])
+            self.cache_dir(), *[p for p in remote.split('/') if p])
 
     def open_remote(self, remote):
         local = self.local_path(remote)

@@ -165,6 +165,11 @@ class PythonController(Controller):
         editor = self.app.edit.current_editor
         if not self.is_python(editor):
             return
+        if self.app.micropython.board_files.is_board_file(editor.file.path):
+            # fichier de la carte : il doit s'exécuter sur la carte (ses
+            # modules, comme neopixel, n'existent pas sur le PC)
+            self.app.micropython.run_on_board()
+            return
         interpreter = find_interpreter() or self.choose_interpreter()
         if not interpreter:
             return
