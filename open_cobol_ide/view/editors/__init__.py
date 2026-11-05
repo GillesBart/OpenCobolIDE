@@ -6,6 +6,23 @@ from .python import PythonCodeEdit, python_source_encoding
 from .text import TextEdit
 
 
+def _apply_last_margin(editor, settings):
+    """
+    Les fichiers qui ne sont pas du COBOL n'affichent que la dernière barre de
+    marge (position et couleur) des préférences.
+    """
+    try:
+        margin = editor.modes.get('RightMarginMode')
+    except KeyError:
+        return
+    positions = settings.margin_positions
+    if positions:
+        margin.position = positions[-1]
+    colors = settings.margin_colors
+    if colors:
+        margin.color = QtGui.QColor(colors[-1])
+
+
 def update_editor_settings(editor):
     from open_cobol_ide.settings import Settings
     settings = Settings()
@@ -23,6 +40,8 @@ def update_editor_settings(editor):
         scheme = settings.other_color_scheme
     editor.syntax_highlighter.color_scheme = ColorScheme(scheme)
     editor.panels.get('FoldingPanel').native_look = not settings.dark_style
+    if not isinstance(editor, CobolCodeEdit):
+        _apply_last_margin(editor, settings)
     if hasattr(editor, 'apply_ide_settings'):
         # editeur qui applique lui-même ses préférences (Python)
         editor.apply_ide_settings(settings)
