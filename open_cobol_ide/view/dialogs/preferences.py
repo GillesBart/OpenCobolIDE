@@ -6,10 +6,19 @@ from open_cobol_ide.translation import tr
 from open_cobol_ide import system, compilers
 from open_cobol_ide.enums import GnuCobolStandard
 from open_cobol_ide.settings import Settings
-from open_cobol_ide.view.editors import PythonCodeEdit
+from open_cobol_ide.view.editors import GenericCodeEdit, PythonCodeEdit
 from open_cobol_ide.view.forms import dlg_preferences_ui
 from open_cobol_ide.view.dialogs.check_compiler import DlgCheckCompiler
 from open_cobol_ide.view.dialogs.cobc_help import DlgCobcHelp
+
+OTHER_TEMPLATE = '''{
+    "nom": "ma carte",
+    "version": 2,
+    "actif": true,
+    "broches": [2, 4, 5],
+    "delai_ms": 250
+}
+'''
 
 PYTHON_TEMPLATE = '''import machine
 from time import sleep_ms
@@ -332,6 +341,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
     def stop_backend(self):
         self.plainTextEdit.backend.stop()
         self.plainTextEditPython.backend.stop()
+        self.plainTextEditOther.backend.stop()
 
     def _update_icon_theme(self, c):
         index = self.comboBoxIconTheme.findText(c)
@@ -359,7 +369,8 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
         # choose a a color scheme that goes well with the selected style
         # (pour COBOL comme pour Python)
         target = 'qt' if native else 'darcula'
-        self._color_schemes = {'cobol': target, 'python': target}
+        self._color_schemes = {'cobol': target, 'python': target,
+                               'other': target}
         self._select_color_scheme(target)
 
     def _setup_language_color_selector(self):
@@ -376,6 +387,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
         self.comboColorLanguage = QtWidgets.QComboBox(self.groupBox_7)
         self.comboColorLanguage.addItem('COBOL', 'cobol')
         self.comboColorLanguage.addItem('Python / MicroPython', 'python')
+        self.comboColorLanguage.addItem(tr('Other files'), 'other')
         bar.addWidget(self.comboColorLanguage)
         bar.addStretch()
         g.addLayout(bar, 0, 0, 1, 2)
@@ -386,6 +398,15 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
             PYTHON_TEMPLATE, 'text/x-python', 'utf-8')
         self.plainTextEditPython.hide()
         g.addWidget(self.plainTextEditPython, 1, 1, 1, 1)
+        self.plainTextEditOther = GenericCodeEdit(self.groupBox_7)
+        self.plainTextEditOther.setPlainText(
+            OTHER_TEMPLATE, 'application/json', 'utf-8')
+        # pas de nom de fichier : on indique le langage de l'exemple
+        self.plainTextEditOther.syntax_highlighter.set_lexer_from_filename(
+            'exemple.json')
+        self.plainTextEditOther.syntax_highlighter.rehighlight()
+        self.plainTextEditOther.hide()
+        g.addWidget(self.plainTextEditOther, 1, 1, 1, 1)
         self._color_schemes = {}
         self._color_language = 'cobol'
         self.comboColorLanguage.currentIndexChanged.connect(
@@ -395,6 +416,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
         self._color_language = self.comboColorLanguage.itemData(index)
         self.plainTextEdit.setVisible(self._color_language == 'cobol')
         self.plainTextEditPython.setVisible(self._color_language == 'python')
+        self.plainTextEditOther.setVisible(self._color_language == 'other')
         self._select_color_scheme(
             self._color_schemes.get(self._color_language))
 
@@ -407,8 +429,9 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
     def update_color_scheme_preview(self, item):
         if item:
             self._color_schemes[self._color_language] = item.text()
-            editor = self.plainTextEditPython \
-                if self._color_language == 'python' else self.plainTextEdit
+            editor = {'python': self.plainTextEditPython,
+                      'other': self.plainTextEditOther}.get(
+                self._color_language, self.plainTextEdit)
             editor.syntax_highlighter.color_scheme = ColorScheme(item.text())
 
     def setupUi(self, Dialog):
@@ -478,7 +501,8 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
                 self.listWidgetColorSchemes.addItem(style)
             self._color_schemes = {
                 'cobol': settings.color_scheme,
-                'python': settings.python_color_scheme}
+                'python': settings.python_color_scheme,
+                'other': settings.other_color_scheme}
             self._select_color_scheme(
                 self._color_schemes[self._color_language])
         # Run
@@ -665,6 +689,8 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
             'cobol', settings.color_scheme)
         settings.python_color_scheme = self._color_schemes.get(
             'python', settings.python_color_scheme)
+        settings.other_color_scheme = self._color_schemes.get(
+            'other', settings.other_color_scheme)
         settings.external_terminal = self.checkBoxRunExtTerm.isChecked()
         settings.external_terminal_command = self.lineEditRunTerm.text()
         settings.lower_case_keywords = self.rbLowerCaseKwds.isChecked()

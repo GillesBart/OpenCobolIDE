@@ -14,9 +14,13 @@ def update_editor_settings(editor):
     editor.font_name = settings.font
     editor.font_size = settings.font_size
     editor.show_whitespaces = settings.show_whitespaces
-    # un thème de couleurs par langage (COBOL / Python)
-    scheme = settings.python_color_scheme \
-        if isinstance(editor, PythonCodeEdit) else settings.color_scheme
+    # un thème de couleurs par type de fichier (COBOL / Python / autres)
+    if isinstance(editor, PythonCodeEdit):
+        scheme = settings.python_color_scheme
+    elif isinstance(editor, CobolCodeEdit):
+        scheme = settings.color_scheme
+    else:
+        scheme = settings.other_color_scheme
     editor.syntax_highlighter.color_scheme = ColorScheme(scheme)
     editor.panels.get('FoldingPanel').native_look = not settings.dark_style
     if hasattr(editor, 'apply_ide_settings'):

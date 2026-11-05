@@ -409,6 +409,16 @@ class Settings(object):
     def python_color_scheme(self, value):
         self._settings.setValue('pythonColorScheme', value)
 
+    @property
+    def other_color_scheme(self):
+        """Thème de couleurs des autres fichiers (texte, json...)."""
+        return self._settings.value('otherColorScheme', '') or \
+            self.color_scheme
+
+    @other_color_scheme.setter
+    def other_color_scheme(self, value):
+        self._settings.setValue('otherColorScheme', value)
+
     # Run settings
     # ----------------------
     @property

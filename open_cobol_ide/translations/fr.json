@@ -336,6 +336,7 @@
   "Select dbpre executable": "Sélectionner l’exécutable dbpre",
   "Select cobmysqlapi object file": "Sélectionner le fichier objet cobmysqlapi",
   "Select dbpre framework directory": "Sélectionner le répertoire du framework dbpre",
+  "Other files": "Autres fichiers",
   "Invalid compiler path": "Chemin du compilateur invalide",
   "Language:": "Langage :",
   "Not a valid compiler path, path does not exists: %s!": "Chemin de compilateur invalide, ce chemin n’existe pas : %s !",
