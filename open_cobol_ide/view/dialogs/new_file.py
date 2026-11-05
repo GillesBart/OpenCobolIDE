@@ -100,7 +100,7 @@ END PROGRAM YOUR-PROGRAM.
 FREE_TEMPLATES = [EXE_TEMPLATE_FREE, MODULE_TEMPLATE_FREE, PYTHON_TEMPLATE, '']
 
 # index dans la liste des types -> extension proposée (None : inchangée)
-TYPE_EXTENSIONS = ['.cbl', '.cbl', '.py', None]
+TYPE_EXTENSIONS = ['.cbl', '.cbl', '.py', '.txt']
 
 
 class DlgNewFile(QtWidgets.QDialog, dlg_file_type_ui.Ui_Dialog):
@@ -124,7 +124,9 @@ class DlgNewFile(QtWidgets.QDialog, dlg_file_type_ui.Ui_Dialog):
         self.prev_pth = ""
         # types : Programme, Module, Script Python, Vide
         self.comboBoxType.insertItem(2, tr('Python script'))
-        self.comboBoxExtension.addItems(['.cbl', '.py'])
+        self.comboBoxExtension.addItems(['.cbl', '.py', '.txt'])
+        # extension libre pour un fichier vide (.json, .toml, .ini...)
+        self.comboBoxExtension.setEditable(True)
         self.comboBoxType.currentIndexChanged.connect(self._on_type_changed)
         self._on_type_changed(self.comboBoxType.currentIndex())
 
@@ -140,9 +142,11 @@ class DlgNewFile(QtWidgets.QDialog, dlg_file_type_ui.Ui_Dialog):
         Returns the path of the file to create.
         :return: new file path
         """
-        return os.path.join(
-            self.lineEditPath.text(),
-            self.lineEditName.text() + self.comboBoxExtension.currentText())
+        ext = self.comboBoxExtension.currentText().strip()
+        if ext and not ext.startswith('.'):
+            ext = '.' + ext
+        return os.path.join(self.lineEditPath.text(),
+                            self.lineEditName.text() + ext)
 
     def template(self):
         """
