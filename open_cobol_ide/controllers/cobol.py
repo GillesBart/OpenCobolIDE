@@ -497,7 +497,11 @@ class CobolController(Controller):
         """
         if self._compilation_thread:
             self._compilation_thread.terminate()
+        on_board = self.app.micropython.board_run_active
         self.ui.consoleOutput.stop_process()
+        if on_board:
+            # arrêter mpremote ne stoppe pas le programme de la carte
+            self.app.micropython.interrupt_board()
         if self.app.python.is_python(self.app.edit.current_editor):
             self.enable_run(True)
             return

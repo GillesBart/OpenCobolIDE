@@ -117,6 +117,8 @@
   "A program is already running in the console.": "Un programme est déjà en cours d'exécution dans la console.",
   "mpremote not installed": "mpremote n'est pas installé",
   "The mpremote tool is not installed for this Python interpreter.\n\nInstall it now with pip?": "L'outil mpremote n'est pas installé pour cet interpréteur Python.\n\nL'installer maintenant avec pip ?",
+  "Program interrupted on the board": "Programme interrompu sur la carte",
+  "Stop": "Arrêt",
   "No board detected.\n\nCheck the USB cable and that no other program (Thonny, a terminal...) uses the port.": "Aucune carte détectée.\n\nVérifiez le câble USB et qu'aucun autre programme (Thonny, un terminal...) n'utilise le port.",
   "Automatic detection": "Détection automatique",
   "REPL": "REPL",

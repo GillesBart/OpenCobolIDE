@@ -11,7 +11,7 @@ import os
 import subprocess
 import sys
 
-from pyqode.qt import QtWidgets
+from pyqode.qt import QtCore, QtWidgets
 
 from open_cobol_ide.settings import Settings
 from open_cobol_ide.translation import tr
@@ -66,6 +66,10 @@ class MicroPythonController(Controller):
             tr('Open the R&EPL in a window'), self.open_repl)
         self.submenu.addSeparator()
         self.board_files = BoardFilesPanel(self)
+        #: vrai tant qu'un programme lancé par « Exécuter sur la carte » tourne
+        self.board_run_active = False
+        self.ui.consoleOutput.process_finished.connect(
+            self._on_process_finished)
         self.actionInstall = self._add(
             tr('&Install or update mpremote'), self.install_mpremote)
 
@@ -143,6 +147,26 @@ class MicroPythonController(Controller):
             interpreter, arguments, working_dir=working_dir,
             env=child_environment(), print_command=True)
 
+    def _on_process_finished(self):
+        self.board_run_active = False
+
+    def interrupt_board(self):
+        """
+        Envoie un Ctrl-C à la carte : entrer dans le REPL brut (mpremote
+        resume) interrompt le programme en cours.
+        """
+        self.board_run_active = False
+        # laisse à mpremote le temps de libérer le port série
+        QtCore.QTimer.singleShot(600, lambda: self.board_files._run(
+            ['exec', 'pass'], self._interrupted))
+
+    def _interrupted(self, ok, out, err):
+        if ok:
+            self.ui.statusbar.showMessage(
+                tr('Program interrupted on the board'), 5000)
+        else:
+            self._info(tr('Stop'), err or out)
+
     def _current_python_file(self):
         editor = self.app.edit.current_editor
         if not self.app.python.is_python(editor):
@@ -194,6 +218,7 @@ class MicroPythonController(Controller):
         interpreter = self._prepare()
         if interpreter:
             reset = Settings().micropython_reset
+            self.board_run_active = True
             self._start(interpreter, self._args('run', path, reset=reset),
                         os.path.dirname(path))
 

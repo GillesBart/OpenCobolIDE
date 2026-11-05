@@ -103,6 +103,8 @@ class PythonController(Controller):
         self.menu = QtWidgets.QMenu(tr('&Python'), self.main_window)
         self.menu.addAction(ui.actionRun)
         self.menu.addAction(ui.actionCancel)
+        # bouton Stop à côté du bouton Exécuter
+        ui.toolBarCOBOL.addAction(ui.actionCancel)
         self.menu.addSeparator()
         self.actionInterpreter = QtWidgets.QAction(
             tr('Python &interpreter...'), self.main_window)
