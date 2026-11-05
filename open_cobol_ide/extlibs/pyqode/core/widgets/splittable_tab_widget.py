@@ -43,6 +43,23 @@ class DraggableTabBar(TabBar):
         self.setMouseTracking(True)
         self.setElideMode(QtCore.Qt.ElideNone)
 
+    #: Teinte (RGBA) appliquée sur les onglets modifiés et non enregistrés
+    DIRTY_COLOR = (255, 165, 40, 95)
+
+    def paintEvent(self, event):
+        super(DraggableTabBar, self).paintEvent(event)
+        # onglets modifiés non enregistrés (titre précédé de « * ») : teinte
+        # orange translucide par-dessus l'onglet, le texte reste lisible
+        painter = None
+        for index in range(self.count()):
+            if self.tabText(index).startswith('* '):
+                if painter is None:
+                    painter = QtGui.QPainter(self)
+                painter.fillRect(self.tabRect(index),
+                                 QtGui.QColor(*self.DIRTY_COLOR))
+        if painter is not None:
+            painter.end()
+
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self._pos = event.pos()  # _pos is a QPoint defined in the header
