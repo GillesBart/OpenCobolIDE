@@ -71,7 +71,7 @@ class _Job(QtCore.QThread):
     def run(self):
         try:
             result = subprocess.run(
-                self._command, capture_output=True, timeout=90,
+                self._command, capture_output=True, timeout=30,
                 encoding='utf-8', errors='replace', env=self._env,
                 **no_window_kwargs())
         except Exception as e:
@@ -134,6 +134,12 @@ class BoardFilesPanel(QtCore.QObject):
         if checked and self.tree.topLevelItemCount() == 0:
             self.refresh()
 
+    def reset(self):
+        """La carte (ou le port) a changé : on oublie l'arborescence."""
+        self.tree.clear()
+        if self.button.isChecked():
+            self.refresh()
+
     def refresh(self):
         self.tree.clear()
         root = self._new_item('/', True)
@@ -174,6 +180,10 @@ class BoardFilesPanel(QtCore.QObject):
         if not ok:
             item.setData(0, ROLE_STATE, None)
             item.setExpanded(False)
+            if item.parent() is None:
+                # carte illisible (débranchée, mauvais port...) : on ne garde
+                # pas l'arborescence précédente
+                self.tree.clear()
             self._error(tr('Cannot read the board'), err or out)
             return
         item.setData(0, ROLE_STATE, 'loaded')

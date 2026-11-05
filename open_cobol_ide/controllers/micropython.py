@@ -184,6 +184,7 @@ class MicroPythonController(Controller):
             position = labels.index(label)
             Settings().micropython_port = \
                 '' if position == 0 else ports[position - 1][0]
+            self.board_files.reset()
 
     def run_on_board(self):
         """Exécute le fichier courant sur la carte, sans l'y enregistrer."""
