@@ -26,6 +26,26 @@ def _logger():
 
 # Liste d'un dossier : une ligne « D|F <tab> taille <tab> nom » par entrée.
 # Seulement os.listdir et os.stat (os.ilistdir manque à CircuitPython).
+# Prépare l'enregistrement d'un fichier à ``p`` : dit s'il existe déjà
+# (EXISTS/NEW) et crée les dossiers manquants.
+PREPARE_PATH_CODE = (
+    "import os\n"
+    "p = %r\n"
+    "try:\n"
+    "    os.stat(p)\n"
+    "    print('EXISTS')\n"
+    "except OSError:\n"
+    "    print('NEW')\n"
+    "cur = ''\n"
+    "for part in p.split(chr(47))[:-1]:\n"
+    "    if part:\n"
+    "        cur = cur + chr(47) + part\n"
+    "        try:\n"
+    "            os.mkdir(cur)\n"
+    "        except OSError:\n"
+    "            pass\n"
+)
+
 LIST_DIR_CODE = (
     "import os\n"
     "p = %r\n"
@@ -375,7 +395,7 @@ class BoardFilesPanel(QtCore.QObject):
             callback(safe_board_id(serial or port), port)
         self._run(['connect', 'list'], done, raw=True)
 
-    def attach(self, editor):
+    def attach(self, editor, force=False):
         """
         Relie un éditeur à sa carte : chaque enregistrement d'une copie de
         fichier de la carte (ouverte depuis le panneau ou depuis les fichiers
@@ -385,8 +405,9 @@ class BoardFilesPanel(QtCore.QObject):
             path = editor.file.path
         except AttributeError:
             return
-        if not path or not self.is_board_file(path) or \
-                getattr(editor, '_board_linked', False):
+        if getattr(editor, '_board_linked', False):
+            return
+        if not force and (not path or not self.is_board_file(path)):
             return
         editor._board_linked = True
         editor.text_saved.connect(
@@ -458,6 +479,124 @@ class BoardFilesPanel(QtCore.QObject):
                 self._after.append(callback)
 
         self._with_board(decide, on_missing=lambda: self._not_sent_run(editor))
+
+    # --------------------------------------------- « Enregistrer sous » carte
+    def save_as(self, editor, save_as_on_pc):
+        """
+        « Enregistrer sous » : si une carte est branchée, demande s'il faut
+        enregistrer sur le PC ou sur la carte (le fichier devient alors
+        celui de la carte).
+
+        :param save_as_on_pc: fonction qui fait l'enregistrement habituel
+        """
+        from pyqode.cobol.widgets import CobolCodeEdit
+        if isinstance(editor, CobolCodeEdit) or \
+                self.controller.quiet_interpreter() is None:
+            save_as_on_pc()
+            return
+        self._detect_board(
+            lambda board, port: self._where(editor, board, port,
+                                            save_as_on_pc),
+            save_as_on_pc)
+
+    def _detect_board(self, found, missing):
+        """Cherche la carte branchée : found(identifiant, port) ou missing()."""
+        from .micropython import parse_port_list
+        chosen = Settings().micropython_port
+
+        def done(ok, out, err):
+            ports = parse_port_list(out if ok else '')
+            if chosen:
+                ports = [p for p in ports if p[0] == chosen]
+            if ports:
+                port, _, serial = ports[0]
+                found(safe_board_id(serial or port), port)
+            else:
+                missing()
+        self._run(['connect', 'list'], done, raw=True)
+
+    def _ask_destination(self, board):
+        box = QtWidgets.QMessageBox(self.controller.main_window)
+        box.setWindowTitle(tr('Save as'))
+        box.setText(tr('Where do you want to save this file?'))
+        box.setInformativeText(tr('A board is connected: "%s".') % board)
+        pc = box.addButton(tr('On the PC'), QtWidgets.QMessageBox.AcceptRole)
+        card = box.addButton(tr('On the board'),
+                             QtWidgets.QMessageBox.AcceptRole)
+        box.addButton(QtWidgets.QMessageBox.Cancel)
+        box.setDefaultButton(pc)
+        box.exec_()
+        if box.clickedButton() is pc:
+            return 'pc'
+        if box.clickedButton() is card:
+            return 'board'
+        return None
+
+    def _ask_remote_path(self, default):
+        text, ok = QtWidgets.QInputDialog.getText(
+            self.controller.main_window, tr('Save on the board'),
+            tr('Path of the file on the board:'),
+            QtWidgets.QLineEdit.Normal, default)
+        return text.strip() if ok else None
+
+    def _confirm_replace(self, remote):
+        return QtWidgets.QMessageBox.question(
+            self.controller.main_window, tr('Save on the board'),
+            tr('%s already exists on the board. Replace it?') % remote
+        ) == QtWidgets.QMessageBox.Yes
+
+    def _default_remote(self, editor):
+        """Dossier sélectionné dans l'arborescence de la carte + nom."""
+        folder = '/'
+        item = self.tree.currentItem() if self.tree.isVisible() else None
+        folder_item = self._folder_item(item) if item is not None else None
+        if folder_item is not None and folder_item.data(0, ROLE_PATH):
+            folder = folder_item.data(0, ROLE_PATH)
+        return join_remote(folder, editor.file.name or 'main.py')
+
+    def _where(self, editor, board, port, save_as_on_pc):
+        choice = self._ask_destination(board)
+        if choice == 'pc':
+            save_as_on_pc()
+        elif choice == 'board':
+            remote = self._ask_remote_path(self._default_remote(editor))
+            if not remote:
+                return
+            remote = '/' + '/'.join(p for p in remote.split('/') if p)
+            if remote == '/' or chr(92) in remote:
+                self._error(tr('Save on the board'), tr('Invalid path.'))
+                return
+            self._run(['exec', PREPARE_PATH_CODE % remote],
+                      lambda ok, out, err: self._prepared(
+                          ok, out, err, editor, remote, board), port=port)
+
+    def _prepared(self, ok, out, err, editor, remote, board):
+        if not ok:
+            self._error(tr('Save on the board'), err or out)
+            return
+        if 'EXISTS' in out and not self._confirm_replace(remote):
+            return
+        self._convert(editor, remote, board)
+
+    def _convert(self, editor, remote, board):
+        """
+        Le fichier devient celui de la carte : enregistré dans le cache, relié
+        à la carte, puis envoyé (par le mécanisme habituel d'enregistrement).
+        """
+        local = self.local_path(remote, board)
+        try:
+            os.makedirs(os.path.dirname(local), exist_ok=True)
+            self.attach(editor, force=True)     # l'enregistrement envoie
+            editor.file.save(local, encoding=editor.file.encoding or 'utf-8')
+        except (OSError, UnicodeError) as e:
+            self._error(tr('Save on the board'), str(e))
+            return
+        editor._board_synced = None     # ajusté par l'envoi
+        tabs = editor.parent_tab_widget
+        tabs.setTabText(tabs.indexOf(editor), editor.file.name)
+        self.controller.main_window.setWindowTitle(
+            '%s [%s] - %s' % (editor.file.name, editor.file.path,
+                              self.app.title))
 
     def _not_sent_run(self, editor):
         self._error(tr('Cannot save the file on the board'),

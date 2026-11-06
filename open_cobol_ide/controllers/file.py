@@ -145,8 +145,16 @@ class FileController(Controller):
 
     def save_as(self):
         """
-        Saves the currend editor content as.
+        Saves the currend editor content as (on the PC, or on a board).
         """
+        editor = self.ui.tabWidgetEditors.current_widget()
+        micropython = getattr(self.app, 'micropython', None)
+        if editor is None or micropython is None:
+            self._save_as_on_pc()
+        else:
+            micropython.board_files.save_as(editor, self._save_as_on_pc)
+
+    def _save_as_on_pc(self):
         try:
             fn = self.ui.tabWidgetEditors.save_current_as()
         except PermissionError:

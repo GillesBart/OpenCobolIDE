@@ -108,6 +108,18 @@ class MicroPythonController(Controller):
         except Exception:
             return False
 
+    def quiet_interpreter(self):
+        """
+        L'interpréteur à utiliser pour mpremote s'il est prêt, sans rien
+        demander à l'utilisateur (None sinon, ou si la console est occupée).
+        """
+        if self.ui.consoleOutput.is_running:
+            return None
+        interpreter = find_interpreter()
+        if interpreter and self._has_mpremote(interpreter):
+            return interpreter
+        return None
+
     def _prepare(self):
         """
         Vérifie que la console est libre, qu'un interpréteur Python est
