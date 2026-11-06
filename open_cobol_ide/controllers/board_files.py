@@ -160,9 +160,61 @@ class BoardFilesPanel(QtCore.QObject):
         return item
 
     def _context_menu(self, pos):
+        item = self.tree.itemAt(pos)
+        folder = self._folder_item(item)
         menu = QtWidgets.QMenu(self.tree)
+        if folder is not None:
+            menu.addAction(tr('New file...'),
+                           lambda: self._new_entry(folder, False))
+            menu.addAction(tr('New folder...'),
+                           lambda: self._new_entry(folder, True))
+            menu.addSeparator()
         menu.addAction(tr('Refresh'), self.refresh)
         menu.exec_(self.tree.mapToGlobal(pos))
+
+    def _folder_item(self, item):
+        """Dossier dans lequel créer : l'élément, son parent, ou la racine."""
+        if item is None:
+            return self.tree.topLevelItem(0)
+        if item.data(0, ROLE_DIR):
+            return item
+        return item.parent()
+
+    def _new_entry(self, folder, is_dir):
+        title = tr('New folder on the board') if is_dir \
+            else tr('New file on the board')
+        name, ok = QtWidgets.QInputDialog.getText(
+            self.controller.main_window, title, tr('Name:'))
+        name = name.strip()
+        if not ok or not name:
+            return
+        if '/' in name or chr(92) in name:
+            self._error(
+                title, tr('The name cannot contain a slash or a backslash'))
+            return
+        remote = join_remote(folder.data(0, ROLE_PATH), name)
+        code = ("import os\nos.mkdir(%r)\n" if is_dir
+                else "open(%r, 'w').close()\n") % remote
+        self._run(['exec', code], lambda ok, out, err: self._created(
+            ok, err or out, folder, remote, is_dir, title))
+
+    def _created(self, ok, message, folder, remote, is_dir, title):
+        if not ok:
+            self._error(title, message)
+            return
+        self._reload(folder)
+        if not is_dir:
+            self.open_remote(remote)
+
+    def _reload(self, item):
+        """Relit le contenu d'un dossier de la carte."""
+        item.setData(0, ROLE_STATE, None)
+        item.takeChildren()
+        item.addChild(QtWidgets.QTreeWidgetItem(['...']))
+        if item.isExpanded():
+            self._on_expanded(item)
+        else:
+            item.setExpanded(True)      # déclenche le chargement
 
     # ------------------------------------------------------------- actions
     def _on_expanded(self, item):
@@ -180,10 +232,8 @@ class BoardFilesPanel(QtCore.QObject):
         if not ok:
             item.setData(0, ROLE_STATE, None)
             item.setExpanded(False)
-            if item.parent() is None:
-                # carte illisible (débranchée, mauvais port...) : on ne garde
-                # pas l'arborescence précédente
-                self.tree.clear()
+            # (la racine reste affichée, vide : « Actualiser » ou « Nouveau
+            # fichier » restent possibles par le clic droit)
             self._error(tr('Cannot read the board'), err or out)
             return
         item.setData(0, ROLE_STATE, 'loaded')

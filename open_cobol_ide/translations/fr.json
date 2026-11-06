@@ -53,7 +53,13 @@
   "Board": "Carte",
   "Show the files of the board instead of those of the PC": "Afficher les fichiers de la carte à la place de ceux du PC",
   "Refresh": "Actualiser",
+  "New folder on the board": "Nouveau dossier sur la carte",
+  "New file on the board": "Nouveau fichier sur la carte",
+  "Name:": "Nom :",
   "Talking to the board...": "Communication avec la carte...",
+  "New file...": "Nouveau fichier...",
+  "New folder...": "Nouveau dossier...",
+  "The name cannot contain a slash or a backslash": "Le nom ne peut pas contenir de barre oblique ni de barre oblique inverse",
   "Cannot read the board": "Impossible de lire la carte",
   "Cannot read the file from the board": "Impossible de lire le fichier de la carte",
   "Cannot save the file on the board": "Impossible d'enregistrer le fichier sur la carte",
@@ -253,7 +259,6 @@
   "Rename ": "Renommer ",
   "New name:": "Nouveau nom :",
   "Create directory": "Créer un répertoire",
-  "Name:": "Nom :",
   "Create new file": "Créer un nouveau fichier",
   "File name:": "Nom du fichier :",
   "&New": "&Nouveau",
@@ -612,6 +617,7 @@
   "Remove from recent files list": "Retirer de la liste des fichiers récents",
   "Clear recent files list": "Effacer la liste des fichiers récents",
   "COBOL file": "Fichier COBOL",
+  "The name cannot contain / or \\": "",
   ";;Other files (*)": ";;Autres fichiers (*)"
  }
 }
