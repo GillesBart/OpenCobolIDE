@@ -224,7 +224,12 @@ class EditController(Controller):
                     not os.path.exists(Settings().lock_fs_path):
                 Settings().lock_fs_path = ''
                 self.ui.btFSLock.setChecked(False)
-            if not self.ui.btFSLock.isChecked():
+            # (une copie de fichier de carte ne doit pas faire pointer
+            # l'arborescence du PC vers le dossier de cache)
+            micropython = getattr(self.app, 'micropython', None)
+            on_board = micropython is not None and \
+                micropython.board_files.is_board_file(editor.file.path)
+            if not self.ui.btFSLock.isChecked() and not on_board:
                 new_root = os.path.dirname(editor.file.path)
                 if new_root != self.ui.tvFileSystem.root_path:
                     self.ui.tvFileSystem.set_root_path(new_root)

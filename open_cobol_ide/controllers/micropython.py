@@ -252,10 +252,22 @@ class MicroPythonController(Controller):
             self.board_files.show_board(refresh=False)
 
     def run_on_board(self):
-        """Exécute le fichier courant sur la carte, sans l'y enregistrer."""
+        """
+        Exécute le fichier courant sur la carte. S'il vient d'une carte, il
+        est d'abord enregistré sur la carte courante.
+        """
+        editor = self.app.edit.current_editor
+        was_dirty = bool(editor is not None and editor.dirty)
         path = self._current_python_file()
         if path is None:
             return
+        if self.board_files.is_board_file(path):
+            self.board_files.sync_then(
+                editor, path, was_dirty, lambda: self._run_on_board(path))
+        else:
+            self._run_on_board(path)
+
+    def _run_on_board(self, path):
         interpreter = self._prepare()
         if interpreter:
             reset = Settings().micropython_reset

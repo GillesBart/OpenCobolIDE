@@ -104,6 +104,9 @@ class BoardFilesPanel(QtCore.QObject):
         self._interpreter_key = None
         #: identité de la carte dont l'arborescence est affichée (None : aucune)
         self._shown_id = None
+        self._pending = 0           # envois de fichiers en cours
+        self._batch_ok = True
+        self._after = []            # actions à faire quand les envois ont fini
         # surveille le changement de carte tant que le panneau est affiché
         self._timer = QtCore.QTimer(self)
         self._timer.setInterval(3000)
@@ -414,38 +417,52 @@ class BoardFilesPanel(QtCore.QObject):
         self.app.view.show_edit_page()
 
     def _on_saved(self, editor, path):
+        """
+        Envoie le fichier enregistré sur la carte actuellement branchée (à
+        l'emplacement qu'il avait sur la carte d'origine), même si ce n'est
+        plus la carte dont il provient.
+        """
         info = self.split_cache_path(path)
         if info is None:
             return
-        board, remote = info
-        if Settings().micropython_port and board == self.board_id():
-            self._upload(editor, path, remote, None)
+        remote = info[1]
+        self._pending += 1
+        self._with_board(
+            lambda board, port: self._upload(editor, path, remote, port,
+                                             board),
+            on_missing=lambda: self._not_sent(editor))
+
+    def sync_then(self, editor, path, was_dirty, callback):
+        """
+        Appelle ``callback`` quand le fichier est sur la carte courante (par
+        exemple pour l'exécuter) ; pas d'appel si l'envoi échoue.
+
+        :param was_dirty: le fichier vient d'être enregistré parce qu'il était
+                          modifié : son envoi est déjà en cours
+        """
+        if not was_dirty:
+            self._on_saved(editor, path)
+        self._after.append(callback)
+
+    def _end_upload(self, ok):
+        self._pending -= 1
+        self._batch_ok = self._batch_ok and ok
+        if self._pending > 0:
             return
-        # le fichier vient d'une autre carte que celle choisie : on cherche
-        # son port d'après le numéro de série, parmi les cartes branchées
-        self._find_port(
-            board,
-            lambda port: self._upload(editor, path, remote, port),
-            lambda: self._not_sent(editor, board))
+        self._pending = 0
+        success, self._batch_ok = self._batch_ok, True
+        callbacks, self._after = self._after, []
+        if success:
+            for callback in callbacks:
+                callback()
 
-    def _find_port(self, board, found, missing):
-        from .micropython import parse_port_list
-
-        def done(ok, out, err):
-            for port, _, serial in parse_port_list(out if ok else ''):
-                if safe_board_id(serial or port) == board:
-                    found(port)
-                    return
-            missing()
-        self._run(['connect', 'list'], done, raw=True)
-
-    def _not_sent(self, editor, board):
+    def _not_sent(self, editor):
         self._mark_unsaved(editor)
         self._error(
             tr('Cannot save the file on the board'),
-            tr('This file belongs to the board "%s", which is not '
-               'connected. Nothing was sent: connect it and save again.')
-            % board)
+            tr('No board detected. Nothing was sent: connect a board and '
+               'save again.'))
+        self._end_upload(False)
 
     @staticmethod
     def _mark_unsaved(editor):
@@ -455,18 +472,19 @@ class BoardFilesPanel(QtCore.QObject):
         except RuntimeError:
             pass        # onglet fermé entre-temps
 
-    def _upload(self, editor, path, remote, port):
+    def _upload(self, editor, path, remote, port, board):
         self._run(['cp', path, ':' + remote],
                   lambda ok, out, err: self._uploaded(
-                      ok, err or out, remote, editor), port=port)
+                      ok, err or out, remote, editor, board), port=port)
 
-    def _uploaded(self, ok, message, remote, editor):
+    def _uploaded(self, ok, message, remote, editor, board):
         if ok:
             self._ui.statusbar.showMessage(
-                tr('Saved on the board: %s') % remote, 5000)
+                tr('Saved on the board "%s": %s') % (board, remote), 5000)
         else:
             self._mark_unsaved(editor)
             self._error(tr('Cannot save the file on the board'), message)
+        self._end_upload(ok)
 
     # ------------------------------------------------------------- mpremote
     def _error(self, title, message):
