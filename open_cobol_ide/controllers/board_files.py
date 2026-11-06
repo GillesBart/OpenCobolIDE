@@ -102,6 +102,12 @@ class BoardFilesPanel(QtCore.QObject):
         self._job = None
         self._interpreter = None
         self._interpreter_key = None
+        #: identité de la carte dont l'arborescence est affichée (None : aucune)
+        self._shown_id = None
+        # surveille le changement de carte tant que le panneau est affiché
+        self._timer = QtCore.QTimer(self)
+        self._timer.setInterval(3000)
+        self._timer.timeout.connect(self._poll)
 
         self.tree = QtWidgets.QTreeWidget(ui.dockWidgetContents_4)
         self.tree.setHeaderHidden(True)
@@ -139,8 +145,11 @@ class BoardFilesPanel(QtCore.QObject):
         ui.bt_fs_up.setVisible(not checked)
         ui.btFSLock.setVisible(not checked)
         self.tree.setVisible(checked)
-        if checked and self.tree.topLevelItemCount() == 0:
-            self.refresh()
+        if checked:
+            self.refresh()          # toujours relire : la carte a pu changer
+            self._timer.start()
+        else:
+            self._timer.stop()
 
     def reset(self):
         """La carte (ou le port) a changé : on oublie l'arborescence."""
@@ -149,11 +158,57 @@ class BoardFilesPanel(QtCore.QObject):
             self.refresh()
 
     def refresh(self):
+        """Efface l'arborescence et relit la carte actuellement branchée."""
+        self.tree.clear()
+        self._shown_id = None
+        self._with_board(self._load_root, on_missing=self._show_no_board)
+
+    def _load_root(self, board, port=None):
+        self._shown_id = board
         self.tree.clear()
         root = self._new_item('/', True)
         root.setText(0, '/')
         self.tree.addTopLevelItem(root)
         root.setExpanded(True)       # déclenche le chargement
+
+    def _show_no_board(self):
+        self._shown_id = None
+        self.tree.clear()
+        item = QtWidgets.QTreeWidgetItem([tr('No board detected.')])
+        item.setFlags(QtCore.Qt.NoItemFlags)
+        item.setData(0, ROLE_PATH, None)
+        self.tree.addTopLevelItem(item)
+
+    # ---------------------------------------------- changement de carte
+    def _poll(self):
+        if not self.button.isChecked() or self._job is not None \
+                or self._queue:
+            return
+        self._run(['connect', 'list'], self._polled, raw=True)
+
+    def _polled(self, ok, out, err):
+        """Compare la carte branchée à celle dont on affiche les fichiers."""
+        if not ok or not self.button.isChecked():
+            return
+        from .micropython import parse_port_list
+        ports = parse_port_list(out)
+        chosen = Settings().micropython_port
+        current = None
+        if chosen:
+            for port, _, serial in ports:
+                if port == chosen:
+                    current = safe_board_id(serial or port)
+                    # une autre carte sur le même port : on suit la carte
+                    if current != self.board_id():
+                        Settings().micropython_board = serial or port
+        elif ports:
+            current = safe_board_id(ports[0][2] or ports[0][0])
+        if current == self._shown_id:
+            return
+        if current is None:
+            self._show_no_board()
+        else:
+            self._load_root(current)
 
     def _new_item(self, name, is_dir, path=None, size=0):
         item = QtWidgets.QTreeWidgetItem([name])
@@ -251,6 +306,8 @@ class BoardFilesPanel(QtCore.QObject):
                 name, is_dir, join_remote(folder, name), size))
 
     def _on_activated(self, item, column=0):
+        if item.data(0, ROLE_PATH) is None:
+            return          # ligne « aucune carte »
         if item.data(0, ROLE_DIR):
             item.setExpanded(not item.isExpanded())
         else:
@@ -289,7 +346,7 @@ class BoardFilesPanel(QtCore.QObject):
         return os.path.join(
             self.cache_dir(), board, *[p for p in remote.split('/') if p])
 
-    def _with_board(self, callback):
+    def _with_board(self, callback, on_missing=None):
         """
         Appelle ``callback(identifiant, port)`` pour la carte utilisée.
 
@@ -306,7 +363,10 @@ class BoardFilesPanel(QtCore.QObject):
         def done(ok, out, err):
             ports = parse_port_list(out if ok else '')
             if not ports:
-                self._error(tr('Board port'), tr('No board detected.'))
+                if on_missing is not None:
+                    on_missing()
+                else:
+                    self._error(tr('Board port'), tr('No board detected.'))
                 return
             port, _, serial = ports[0]
             callback(safe_board_id(serial or port), port)
@@ -419,6 +479,7 @@ class BoardFilesPanel(QtCore.QObject):
 
     def shutdown(self):
         """À la fermeture de l'IDE : plus de commande en attente."""
+        self._timer.stop()
         self._queue.clear()
         job = self._job
         if job is not None:
