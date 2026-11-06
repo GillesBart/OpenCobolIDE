@@ -407,13 +407,15 @@ class BoardFilesPanel(QtCore.QObject):
         os.makedirs(os.path.dirname(local), exist_ok=True)
         self._run(['cp', ':' + remote, local],
                   lambda ok, out, err: self._downloaded(
-                      ok, err or out, remote, local), port=port)
+                      ok, err or out, remote, local, board), port=port)
 
-    def _downloaded(self, ok, message, remote, local):
+    def _downloaded(self, ok, message, remote, local, board):
         if not ok or not os.path.isfile(local):
             self._error(tr('Cannot read the file from the board'), message)
             return
-        self.app.edit.add_editor(local)     # (relié à la carte par attach)
+        editor = self.app.edit.add_editor(local)    # (relié par attach)
+        if editor is not None:
+            editor._board_synced = board        # contenu identique à la carte
         self.app.view.show_edit_page()
 
     def _on_saved(self, editor, path):
@@ -440,9 +442,27 @@ class BoardFilesPanel(QtCore.QObject):
         :param was_dirty: le fichier vient d'être enregistré parce qu'il était
                           modifié : son envoi est déjà en cours
         """
-        if not was_dirty:
-            self._on_saved(editor, path)
-        self._after.append(callback)
+        if was_dirty:
+            self._after.append(callback)        # l'envoi est déjà en cours
+            return
+
+        def decide(board, port):
+            if getattr(editor, '_board_synced', None) == board:
+                # inchangé et déjà sur cette carte : rien à envoyer
+                if self._pending == 0:
+                    callback()
+                else:
+                    self._after.append(callback)    # d'autres envois en cours
+            else:
+                self._on_saved(editor, path)
+                self._after.append(callback)
+
+        self._with_board(decide, on_missing=lambda: self._not_sent_run(editor))
+
+    def _not_sent_run(self, editor):
+        self._error(tr('Cannot save the file on the board'),
+                    tr('No board detected. Nothing was sent: connect a board '
+                       'and save again.'))
 
     def _end_upload(self, ok):
         self._pending -= 1
@@ -479,6 +499,7 @@ class BoardFilesPanel(QtCore.QObject):
 
     def _uploaded(self, ok, message, remote, editor, board):
         if ok:
+            editor._board_synced = board
             self._ui.statusbar.showMessage(
                 tr('Saved on the board "%s": %s') % (board, remote), 5000)
         else:
