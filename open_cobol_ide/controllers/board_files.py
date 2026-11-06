@@ -11,9 +11,10 @@ import logging
 import os
 import subprocess
 
-from pyqode.qt import QtCore, QtGui, QtWidgets
+from pyqode.qt import QtCore, QtWidgets
 
 from open_cobol_ide import system
+from open_cobol_ide.settings import Settings
 from open_cobol_ide.translation import tr
 from open_cobol_ide.view.widgets import FileIconProvider
 from .python import child_environment, no_window_kwargs
@@ -55,6 +56,13 @@ def parse_listing(text):
     return entries
 
 
+def safe_board_id(value):
+    """Nom de dossier de cache d'une carte ('auto' si inconnue)."""
+    value = ''.join(c if c.isalnum() or c in '._-' else '_'
+                    for c in (value or '').strip())
+    return value or 'auto'
+
+
 def join_remote(folder, name):
     return folder.rstrip('/') + '/' + name
 
@@ -93,7 +101,7 @@ class BoardFilesPanel(QtCore.QObject):
         self._queue = []
         self._job = None
         self._interpreter = None
-        self._remote_of = {}     # chemin local normalisé -> chemin sur la carte
+        self._interpreter_key = None
 
         self.tree = QtWidgets.QTreeWidget(ui.dockWidgetContents_4)
         self.tree.setHeaderHidden(True)
@@ -252,15 +260,52 @@ class BoardFilesPanel(QtCore.QObject):
     def cache_dir():
         return os.path.join(system.data_dir(), 'cache', 'board')
 
+    @staticmethod
+    def board_id():
+        return safe_board_id(Settings().micropython_board)
+
     def is_board_file(self, path):
         """Vrai si ``path`` est la copie locale d'un fichier de la carte."""
         cache = os.path.normcase(os.path.abspath(self.cache_dir()))
         path = os.path.normcase(os.path.abspath(path))
         return path.startswith(cache + os.sep)
 
+    def split_cache_path(self, path):
+        """
+        :return: (identifiant de la carte, chemin sur la carte) d'une copie
+                 locale, ou None si ce n'en est pas une.
+        """
+        if not self.is_board_file(path):
+            return None
+        rel = os.path.relpath(os.path.abspath(path),
+                              os.path.abspath(self.cache_dir()))
+        parts = rel.split(os.sep)
+        if len(parts) < 2:
+            return None
+        return parts[0], '/' + '/'.join(parts[1:])
+
     def local_path(self, remote):
+        """Copie locale d'un fichier de la carte actuellement choisie."""
         return os.path.join(
-            self.cache_dir(), *[p for p in remote.split('/') if p])
+            self.cache_dir(), self.board_id(),
+            *[p for p in remote.split('/') if p])
+
+    def attach(self, editor):
+        """
+        Relie un éditeur à sa carte : chaque enregistrement d'une copie de
+        fichier de la carte (ouverte depuis le panneau ou depuis les fichiers
+        récents) est renvoyé sur la carte d'origine.
+        """
+        try:
+            path = editor.file.path
+        except AttributeError:
+            return
+        if not path or not self.is_board_file(path) or \
+                getattr(editor, '_board_linked', False):
+            return
+        editor._board_linked = True
+        editor.text_saved.connect(
+            lambda saved, ed=editor: self._on_saved(ed, saved))
 
     def open_remote(self, remote):
         local = self.local_path(remote)
@@ -279,46 +324,108 @@ class BoardFilesPanel(QtCore.QObject):
         if not ok or not os.path.isfile(local):
             self._error(tr('Cannot read the file from the board'), message)
             return
-        self._remote_of[os.path.normcase(os.path.abspath(local))] = remote
-        editor = self.app.edit.add_editor(local)
+        self.app.edit.add_editor(local)     # (relié à la carte par attach)
         self.app.view.show_edit_page()
-        if editor is not None:
-            editor.text_saved.connect(self._on_saved)
 
-    def _on_saved(self, path):
-        remote = self._remote_of.get(os.path.normcase(os.path.abspath(path)))
-        if remote is None:
+    def _on_saved(self, editor, path):
+        info = self.split_cache_path(path)
+        if info is None:
             return
-        self._run(['cp', path, ':' + remote],
-                  lambda ok, out, err: self._uploaded(ok, err or out, remote))
+        board, remote = info
+        if board == self.board_id():
+            self._upload(editor, path, remote, None)
+            return
+        # le fichier vient d'une autre carte que celle choisie : on cherche
+        # son port d'après le numéro de série, parmi les cartes branchées
+        self._find_port(
+            board,
+            lambda port: self._upload(editor, path, remote, port),
+            lambda: self._not_sent(editor, board))
 
-    def _uploaded(self, ok, message, remote):
+    def _find_port(self, board, found, missing):
+        from .micropython import parse_port_list
+
+        def done(ok, out, err):
+            for port, _, serial in parse_port_list(out if ok else ''):
+                if safe_board_id(serial or port) == board:
+                    found(port)
+                    return
+            missing()
+        self._run(['connect', 'list'], done, raw=True)
+
+    def _not_sent(self, editor, board):
+        self._mark_unsaved(editor)
+        self._error(
+            tr('Cannot save the file on the board'),
+            tr('This file belongs to the board "%s", which is not '
+               'connected. Nothing was sent: connect it and save again.')
+            % board)
+
+    @staticmethod
+    def _mark_unsaved(editor):
+        """L'onglet redevient « modifié » : la carte n'a pas la dernière version."""
+        try:
+            editor.document().setModified(True)
+        except RuntimeError:
+            pass        # onglet fermé entre-temps
+
+    def _upload(self, editor, path, remote, port):
+        self._run(['cp', path, ':' + remote],
+                  lambda ok, out, err: self._uploaded(
+                      ok, err or out, remote, editor), port=port)
+
+    def _uploaded(self, ok, message, remote, editor):
         if ok:
             self._ui.statusbar.showMessage(
                 tr('Saved on the board: %s') % remote, 5000)
         else:
+            self._mark_unsaved(editor)
             self._error(tr('Cannot save the file on the board'), message)
 
     # ------------------------------------------------------------- mpremote
     def _error(self, title, message):
+        message = str(message).strip()[-1500:]
+        if 'could not enter raw repl' in message:
+            from .micropython import RAW_REPL_HINT
+            message += '\n\n' + RAW_REPL_HINT()
         QtWidgets.QMessageBox.warning(
-            self.controller.main_window, title, str(message).strip()[-1500:])
+            self.controller.main_window, title, message)
 
-    def _run(self, args, callback):
-        """Met la commande mpremote en file d'attente (une à la fois)."""
-        self._queue.append((args, callback))
+    def shutdown(self):
+        """À la fermeture de l'IDE : plus de commande en attente."""
+        self._queue.clear()
+        job = self._job
+        if job is not None:
+            if not job.wait(3000):
+                job.terminate()
+                job.wait(500)
+
+    def _run(self, args, callback, port=None, raw=False):
+        """
+        Met la commande mpremote en file d'attente (une à la fois).
+
+        :param port: port à utiliser à la place de celui des préférences
+        :param raw: args est la ligne de commande complète de mpremote
+        """
+        self._queue.append((args, callback, port, raw))
         self._next()
 
     def _next(self):
         if self._job is not None or not self._queue:
             return
-        if self._interpreter is None:
+        key = Settings().python_interpreter
+        if self._interpreter is None or key != self._interpreter_key:
             self._interpreter = self.controller._prepare()
+            self._interpreter_key = key
             if not self._interpreter:
                 self._queue.clear()
                 return
-        args, callback = self._queue.pop(0)
-        command = [self._interpreter] + self.controller._args(*args)
+        args, callback, port, raw = self._queue.pop(0)
+        if raw:
+            command = [self._interpreter, '-u', '-m', 'mpremote'] + args
+        else:
+            command = [self._interpreter] + \
+                self.controller._args(*args, port=port)
         env = dict(os.environ, **child_environment())
         job = _Job(command, env, self)
         job.done.connect(

@@ -192,6 +192,13 @@ class ColorPicker(QtWidgets.QPushButton):
 
 
 class MyOutputWindow(OutputWindow):
+    #: émis quand un processus est lancé dans la console
+    process_started = QtCore.Signal()
+
+    def start_process(self, *args, **kwargs):
+        super(MyOutputWindow, self).start_process(*args, **kwargs)
+        self.process_started.emit()
+
     def __init__(self, parent=None):
         cwd = os.path.dirname(sys.executable)
         base_backend = 'core-backend'

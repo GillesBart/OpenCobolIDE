@@ -1008,6 +1008,19 @@ class Settings(object):
         self._settings.setValue('micropythonPort', str(value))
 
     @property
+    def micropython_board(self):
+        """
+        Identifiant de la carte choisie (numéro de série USB, sinon nom du
+        port ; '' = détection automatique). Les fichiers de la carte sont
+        copiés dans un dossier de cache propre à chaque carte.
+        """
+        return str(self._settings.value('micropythonBoard', ''))
+
+    @micropython_board.setter
+    def micropython_board(self, value):
+        self._settings.setValue('micropythonBoard', str(value))
+
+    @property
     def micropython_reset(self):
         """Redémarrer la carte avant d'y exécuter un fichier (défaut : oui)."""
         return bool(int(self._settings.value('micropythonReset', '1')))

@@ -153,6 +153,11 @@ class CobolController(Controller):
         self._run_requested = False
         self.ui.consoleOutput.process_finished.connect(self._on_run_finished)
         self.ui.actionCancel.triggered.connect(self.cancel)
+        # STOP n'est actif que pendant une compilation ou une exécution
+        self._compiling = False
+        self.ui.actionCancel.setEnabled(False)
+        self.ui.consoleOutput.process_started.connect(self._update_cancel)
+        self.ui.consoleOutput.process_finished.connect(self._update_cancel)
         self._exception_flags = []
 
     def create_bt_compile(self):
@@ -256,6 +261,8 @@ class CobolController(Controller):
             self._on_output_available)
         self._compilation_thread.finished.connect(
             self._on_compilation_finished)
+        self._compiling = True
+        self._update_cancel()
         self._compilation_thread.start()
         self._exception_flags[:] = []
 
@@ -287,12 +294,18 @@ class CobolController(Controller):
         if output:
             self.ui.textEditCompilerOutput.append(output)
 
+    def _update_cancel(self, *args):
+        self.ui.actionCancel.setEnabled(
+            self._compiling or self.ui.consoleOutput.is_running)
+
     def _on_compilation_finished(self):
         """
         Runs the current file if the compilation came from a run request,
         otherwise enables actions/buttons.
 
         """
+        self._compiling = False
+        self._update_cancel()
         self.enable_compile(True)
         self.enable_run(True)
         self.ui.tabWidgetLogs.setCurrentIndex(LOG_PAGE_ISSUES)
@@ -504,8 +517,10 @@ class CobolController(Controller):
         """
         if self._compilation_thread:
             self._compilation_thread.terminate()
+        self._compiling = False
         on_board = self.app.micropython.board_run_active
         self.ui.consoleOutput.stop_process()
+        self._update_cancel()
         if on_board:
             # arrêter mpremote ne stoppe pas le programme de la carte
             self.app.micropython.interrupt_board()

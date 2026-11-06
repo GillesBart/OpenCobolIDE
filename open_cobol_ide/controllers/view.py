@@ -142,8 +142,6 @@ class ViewController(Controller):
         icon_report_bug = QIcon.fromTheme('tools-report-bug')
         icon_lock = QIcon.fromTheme('system-lock-screen', QtGui.QIcon(
             ':/ide-icons/rc/lock.png'))
-        icon_rebuild = QIcon.fromTheme('view-refresh', QtGui.QIcon(
-            ':/ide-icons/rc/view-refresh.png'))
 
         self.ui.btFSLock.setIcon(icon_lock)
         self.ui.btNavLock.setIcon(icon_lock)
@@ -173,7 +171,6 @@ class ViewController(Controller):
             QtWidgets.QAction.PreferencesRole)
         self.ui.actionQuit.setMenuRole(QtWidgets.QAction.QuitRole)
         self.ui.actionReport_a_bug.setIcon(icon_report_bug)
-        self.ui.actionRebuild.setIcon(icon_rebuild)
 
         if system.darwin:
             self.ui.menu.setTitle('Help')

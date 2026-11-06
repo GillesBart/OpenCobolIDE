@@ -5,12 +5,11 @@ Contains the EditController.
 import logging
 import os
 import weakref
-from pyqode.core.api import TextHelper, ColorScheme
+from pyqode.core.api import TextHelper
 from pyqode.core.cache import Cache
 from pyqode.qt import QtCore, QtGui, QtWidgets
 from .base import Controller
 from open_cobol_ide.translation import tr
-from open_cobol_ide.enums import FileType
 from ..view.dialogs.preferences import DlgPreferences
 from ..settings import Settings
 from ..view.editors import CobolCodeEdit, GenericCodeEdit, TextEdit, \
@@ -185,6 +184,11 @@ class EditController(Controller):
                 fw.file_deleted.connect(self._on_file_deleted)
             editor.app = weakref.ref(self.app)
             update_editor_settings(editor)
+            # copie d'un fichier d'une carte MicroPython : renvoyée sur la
+            # carte à chaque enregistrement
+            micropython = getattr(self.app, 'micropython', None)
+            if micropython is not None:
+                micropython.board_files.attach(editor)
             try:
                 self.ui.actionEnableLinter.blockSignals(True)
                 self.ui.actionEnableLinter.setChecked(Settings().show_errors)
@@ -254,8 +258,8 @@ class EditController(Controller):
                                 editor.file.path)
                 return
             try:
-                is_executable = (self.app.edit.current_editor.file_type ==
-                                 FileType.EXECUTABLE)
+                # lève AttributeError si ce n'est pas un éditeur COBOL
+                self.app.edit.current_editor.file_type
             except (AttributeError, UnicodeDecodeError):
                 # not a cobol editor, or not file not loaded due to an
                 # encoding error

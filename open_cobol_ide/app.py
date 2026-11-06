@@ -118,6 +118,8 @@ class Application(QtCore.QObject):
         sys.exit(0)
 
     def close(self):
+        if self.micropython is not None:
+            self.micropython.board_files.shutdown()
         self.view = None
         self.cobol = None
         self.python = None

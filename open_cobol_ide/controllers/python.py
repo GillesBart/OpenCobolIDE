@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 from pyqode.core.api import TextHelper
-from pyqode.qt import QtCore, QtWidgets
+from pyqode.qt import QtWidgets
 
 from open_cobol_ide import system
 from open_cobol_ide.settings import Settings

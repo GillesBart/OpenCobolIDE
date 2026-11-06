@@ -33,7 +33,7 @@ def parse_port_list(text):
     Les ports sans identifiant USB (0000:0000 : COM1, ports Bluetooth...) sont
     ignorés : ce ne sont pas des cartes.
 
-    :return: liste de (port, ligne de description)
+    :return: liste de (port, ligne de description, numéro de série ou None)
     """
     ports = []
     for line in text.splitlines():
@@ -41,8 +41,17 @@ def parse_port_list(text):
         if len(parts) >= 3 and parts[2] == '0000:0000':
             continue
         if parts:
-            ports.append((parts[0], line.strip()))
+            serial = parts[1] if len(parts) > 1 and parts[1] != 'None' \
+                else None
+            ports.append((parts[0], line.strip(), serial))
     return ports
+
+
+def RAW_REPL_HINT():
+    return tr('The board did not answer. Some boards (CircuitPython with a '
+              'translated system...) do not accept the restart that '
+              'precedes the execution: untick "Reset the board before '
+              'running" in the MicroPython menu and try again.')
 
 
 class MicroPythonController(Controller):
@@ -125,7 +134,7 @@ class MicroPythonController(Controller):
         return interpreter
 
     @staticmethod
-    def _args(*args, reset=False):
+    def _args(*args, reset=False, port=None):
         """
         Arguments de ``python`` pour lancer mpremote vers la bonne carte.
 
@@ -135,7 +144,7 @@ class MicroPythonController(Controller):
         traduit (CircuitPython en français...) n'envoient pas.
         """
         cmd = ['-u', '-m', 'mpremote']
-        port = Settings().micropython_port
+        port = port or Settings().micropython_port
         if port:
             cmd += ['connect', port]
         if not reset:
@@ -153,7 +162,15 @@ class MicroPythonController(Controller):
             env=child_environment(), print_command=True)
 
     def _on_process_finished(self):
+        was_on_board = self.board_run_active
         self.board_run_active = False
+        if was_on_board and Settings().micropython_reset:
+            try:
+                tail = self.ui.consoleOutput.toPlainText()[-3000:]
+            except AttributeError:
+                return
+            if 'could not enter raw repl' in tail:
+                self._info(tr('Board'), RAW_REPL_HINT())
 
     def interrupt_board(self):
         """
@@ -205,10 +222,10 @@ class MicroPythonController(Controller):
                 tr('No board detected.\n\nCheck the USB cable and that no '
                    'other program (Thonny, a terminal...) uses the port.'))
             return False
-        labels = [tr('Automatic detection')] + [line for _, line in ports]
+        labels = [tr('Automatic detection')] + [p[1] for p in ports]
         current = Settings().micropython_port
         index = 0
-        for i, (device, _) in enumerate(ports, 1):
+        for i, (device, _, _) in enumerate(ports, 1):
             if device == current:
                 index = i
         label, ok = QtWidgets.QInputDialog.getItem(
@@ -216,8 +233,13 @@ class MicroPythonController(Controller):
             tr('Serial port of the board:'), labels, index, False)
         if ok:
             position = labels.index(label)
-            Settings().micropython_port = \
-                '' if position == 0 else ports[position - 1][0]
+            if position == 0:
+                Settings().micropython_port = ''
+                Settings().micropython_board = ''
+            else:
+                device, _, serial = ports[position - 1]
+                Settings().micropython_port = device
+                Settings().micropython_board = serial or device
             self.board_files.reset()
         return bool(ok)
 
