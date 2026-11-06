@@ -442,7 +442,7 @@ class GnuCobolCompiler(QtCore.QObject):
             os.remove(test_path)
 
     def compile(self, file_path, file_type, object_files=None,
-                additional_options=None, output_dir=None):
+                additional_options=None, output_dir=None, force=False):
         """
         Compiles a file. This is a blocking function, it returns only when
         the compiler process finished.
@@ -451,6 +451,9 @@ class GnuCobolCompiler(QtCore.QObject):
         :param file_type: File type (exe or dll)
         :param output_dir: Output directory, if None, the directory set in the
                            application directory will be used.
+        :param force: Compile even if the output file is up to date.
+                      Otherwise (before running a program) an up to date
+                      output file is not rebuilt.
         :return: status, list of checker messages
         """
         _logger().info('compiling %s' % file_path)
@@ -467,7 +470,7 @@ class GnuCobolCompiler(QtCore.QObject):
         # ensure bin dir exists
         output_full_path = os.path.join(
             output_dir, self.get_output_filename(inputs, file_type))
-        if os.path.exists(output_full_path) and \
+        if not force and os.path.exists(output_full_path) and \
             os.path.getmtime(file_path) <= \
                 os.path.getmtime(output_full_path):
             desc = tr('compilation skipped, up to date...')

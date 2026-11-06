@@ -69,6 +69,10 @@ class CompilationThread(QtCore.QThread):
     #: path of the file to compile
     file_path = ''
 
+    #: compile even if the output file is up to date (explicit compile
+    #: request); False when compiling only to run the program
+    force = True
+
     def run(self):
         """
         Compiles the file and all its dependencies.
@@ -110,7 +114,8 @@ class CompilationThread(QtCore.QThread):
                 elif is_esqloc_cobol(f):
                     status, messages = esqloc.compile(f)
                 else:
-                    status, messages = cobc.compile(f, get_file_type(f))
+                    status, messages = cobc.compile(
+                        f, get_file_type(f), force=self.force)
             except Exception as e:
                 _logger().exception('exception while compiling')
                 self.errored.emit(f, e)
@@ -138,6 +143,9 @@ class CobolController(Controller):
         self.create_bt_compile()
         self.ui.toolBarCOBOL.insertWidget(
             self.ui.actionRebuild, self.compile_buttons[0])
+        # « Compiler » recompile toujours : « Reconstruire » est inutile
+        self.ui.menuCobol.removeAction(self.ui.actionRebuild)
+        self.ui.toolBarCOBOL.removeAction(self.ui.actionRebuild)
         group.triggered.connect(self._on_program_type_changed)
         self.ui.actionCompile.triggered.connect(self.compile)
         self.ui.errorsTable.msg_activated.connect(self._goto_error_msg)
@@ -145,7 +153,6 @@ class CobolController(Controller):
         self._run_requested = False
         self.ui.consoleOutput.process_finished.connect(self._on_run_finished)
         self.ui.actionCancel.triggered.connect(self.cancel)
-        self.ui.actionRebuild.triggered.connect(self.rebuild)
         self._exception_flags = []
 
     def create_bt_compile(self):
@@ -208,8 +215,11 @@ class CobolController(Controller):
 
     def compile(self):
         """
-        Compiles the current editor
+        Compiles the current editor (always, even if it is up to date).
         """
+        self._compile(force=True)
+
+    def _compile(self, force):
         if self.app.edit.current_editor is None:
             return
         # make sure the associated compiler is working, otherwise disable
@@ -235,6 +245,7 @@ class CobolController(Controller):
         self.ui.textEditCompilerOutput.clear()
         self.ui.tabWidgetLogs.setCurrentIndex(LOG_PAGE_COMPILER)
         self._compilation_thread = CompilationThread()
+        self._compilation_thread.force = force
         self._compilation_thread.file_path = \
             self.app.edit.current_editor.file.path
         self._compilation_thread.file_compiled.connect(self._on_file_compiled)
@@ -263,11 +274,6 @@ class CobolController(Controller):
             _logger().debug('failed to remove output file %r', output_path)
         else:
             _logger().debug('file removed: %s', output_path)
-
-    def rebuild(self):
-        CobolController.clean_file(
-            self.app.edit.current_editor.file.path)
-        self.compile()
 
     def _on_command_started(self, cmd):
         old_color = self.ui.textEditCompilerOutput.textColor()
@@ -361,7 +367,8 @@ class CobolController(Controller):
             return
         self.ui.consoleOutput.clear()
         self._run_requested = True
-        self.compile()
+        # on ne recompile que si le programme n'est pas à jour
+        self._compile(force=False)
 
     def _run_in_external_terminal(self, program, wd, file_type):
         """
