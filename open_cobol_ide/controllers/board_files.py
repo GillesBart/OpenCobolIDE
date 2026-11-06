@@ -284,11 +284,33 @@ class BoardFilesPanel(QtCore.QObject):
             return None
         return parts[0], '/' + '/'.join(parts[1:])
 
-    def local_path(self, remote):
-        """Copie locale d'un fichier de la carte actuellement choisie."""
+    def local_path(self, remote, board):
+        """Copie locale d'un fichier de la carte ``board``."""
         return os.path.join(
-            self.cache_dir(), self.board_id(),
-            *[p for p in remote.split('/') if p])
+            self.cache_dir(), board, *[p for p in remote.split('/') if p])
+
+    def _with_board(self, callback):
+        """
+        Appelle ``callback(identifiant, port)`` pour la carte utilisée.
+
+        Port choisi : on le connaît. Détection automatique : mpremote prend la
+        première carte USB trouvée, qui peut changer d'un moment à l'autre ;
+        on la cherche donc maintenant, pour ranger les fichiers sous son
+        propre identifiant et ne pas les mélanger avec ceux d'une autre carte.
+        """
+        if Settings().micropython_port:
+            callback(self.board_id(), None)
+            return
+        from .micropython import parse_port_list
+
+        def done(ok, out, err):
+            ports = parse_port_list(out if ok else '')
+            if not ports:
+                self._error(tr('Board port'), tr('No board detected.'))
+                return
+            port, _, serial = ports[0]
+            callback(safe_board_id(serial or port), port)
+        self._run(['connect', 'list'], done, raw=True)
 
     def attach(self, editor):
         """
@@ -308,7 +330,11 @@ class BoardFilesPanel(QtCore.QObject):
             lambda saved, ed=editor: self._on_saved(ed, saved))
 
     def open_remote(self, remote):
-        local = self.local_path(remote)
+        self._with_board(
+            lambda board, port: self._open_remote(remote, board, port))
+
+    def _open_remote(self, remote, board, port):
+        local = self.local_path(remote, board)
         key = os.path.normcase(os.path.abspath(local))
         for editor in self._ui.tabWidgetEditors.widgets(include_clones=True):
             if os.path.normcase(os.path.abspath(editor.file.path)) == key:
@@ -318,7 +344,7 @@ class BoardFilesPanel(QtCore.QObject):
         os.makedirs(os.path.dirname(local), exist_ok=True)
         self._run(['cp', ':' + remote, local],
                   lambda ok, out, err: self._downloaded(
-                      ok, err or out, remote, local))
+                      ok, err or out, remote, local), port=port)
 
     def _downloaded(self, ok, message, remote, local):
         if not ok or not os.path.isfile(local):
@@ -332,7 +358,7 @@ class BoardFilesPanel(QtCore.QObject):
         if info is None:
             return
         board, remote = info
-        if board == self.board_id():
+        if Settings().micropython_port and board == self.board_id():
             self._upload(editor, path, remote, None)
             return
         # le fichier vient d'une autre carte que celle choisie : on cherche
