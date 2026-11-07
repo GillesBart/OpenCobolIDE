@@ -26,13 +26,8 @@ def _logger():
 
 # Liste d'un dossier : une ligne « D|F <tab> taille <tab> nom » par entrée.
 # Seulement os.listdir et os.stat (os.ilistdir manque à CircuitPython).
-# Prépare l'enregistrement d'un fichier à ``p`` : dit s'il existe déjà
-# (EXISTS/NEW) et, s'il est nouveau, crée les dossiers manquants et le fichier
-# vide. « mpremote cp » interroge d'abord la carte sur la destination et
-# n'accepte que l'erreur ENOENT en anglais : sur une carte dont le système est
-# traduit (CircuitPython en français), copier vers un fichier inexistant
-# échoue. Un fichier déjà créé évite ce cas.
-PREPARE_PATH_CODE = (
+# Dit si ``p`` existe déjà sur la carte (EXISTS/NEW), sans rien écrire.
+CHECK_PATH_CODE = (
     "import os\n"
     "p = %r\n"
     "try:\n"
@@ -40,16 +35,39 @@ PREPARE_PATH_CODE = (
     "    print('EXISTS')\n"
     "except OSError:\n"
     "    print('NEW')\n"
-    "    cur = ''\n"
-    "    for part in p.split(chr(47))[:-1]:\n"
-    "        if part:\n"
-    "            cur = cur + chr(47) + part\n"
-    "            try:\n"
-    "                os.mkdir(cur)\n"
-    "            except OSError:\n"
-    "                pass\n"
-    "    open(p, 'w').close()\n"
 )
+
+# Crée les dossiers manquants et le fichier vide ``p``. « mpremote cp » interroge
+# d'abord la carte sur la destination et n'accepte que l'erreur ENOENT en
+# anglais : sur une carte dont le système est traduit (CircuitPython en
+# français), copier vers un fichier inexistant échoue. Un fichier déjà créé
+# évite ce cas.
+TOUCH_PATH_CODE = (
+    "import os\n"
+    "p = %r\n"
+    "cur = ''\n"
+    "for part in p.split(chr(47))[:-1]:\n"
+    "    if part:\n"
+    "        cur = cur + chr(47) + part\n"
+    "        try:\n"
+    "            os.mkdir(cur)\n"
+    "        except OSError:\n"
+    "            pass\n"
+    "open(p, 'w').close()\n"
+)
+
+# Délais (ms) : CircuitPython recharge son programme dès qu'un fichier est
+# écrit, et pendant ce rechargement le système de fichiers est en lecture
+# seule pour le code. On attend avant d'écrire à nouveau.
+AFTER_CREATE_DELAY = 2500
+READ_ONLY_RETRY_DELAY = 2000
+READ_ONLY_RETRIES = 3
+
+
+def is_read_only_error(message):
+    return any(key in message for key in
+               ('Errno 30', 'ead-only', 'lecture seule'))
+
 
 LIST_DIR_CODE = (
     "import os\n"
@@ -571,7 +589,7 @@ class BoardFilesPanel(QtCore.QObject):
             if remote == '/' or chr(92) in remote:
                 self._error(tr('Save on the board'), tr('Invalid path.'))
                 return
-            self._run(['exec', PREPARE_PATH_CODE % remote],
+            self._run(['exec', CHECK_PATH_CODE % remote],
                       lambda ok, out, err: self._prepared(
                           ok, out, err, editor, remote, board), port=port)
 
@@ -636,19 +654,30 @@ class BoardFilesPanel(QtCore.QObject):
         except RuntimeError:
             pass        # onglet fermé entre-temps
 
-    def _upload(self, editor, path, remote, port, board, retry=True):
+    def _upload(self, editor, path, remote, port, board, attempt=0,
+                created=False):
         def done(ok, out, err):
             message = err or out
-            if not ok and retry and 'Errno 2' in message:
-                # fichier ou dossier absent de la carte (supprimé depuis ?) :
-                # on le crée puis on renvoie une fois
+            if not ok and not created and 'Errno 2' in message:
+                # absent de la carte (nouveau fichier, ou supprimé depuis) :
+                # on crée le fichier vide, on laisse la carte se recharger,
+                # puis on envoie le contenu
                 self._run(
-                    ['exec', PREPARE_PATH_CODE % remote],
-                    lambda ok2, out2, err2: self._upload(
-                        editor, path, remote, port, board, retry=False)
+                    ['exec', TOUCH_PATH_CODE % remote],
+                    lambda ok2, out2, err2: QtCore.QTimer.singleShot(
+                        AFTER_CREATE_DELAY,
+                        lambda: self._upload(editor, path, remote, port,
+                                             board, attempt, True))
                     if ok2 else self._uploaded(
                         False, err2 or out2, remote, editor, board),
                     port=port)
+                return
+            if not ok and attempt < READ_ONLY_RETRIES and \
+                    is_read_only_error(message):
+                QtCore.QTimer.singleShot(
+                    READ_ONLY_RETRY_DELAY,
+                    lambda: self._upload(editor, path, remote, port, board,
+                                         attempt + 1, created))
                 return
             self._uploaded(ok, message, remote, editor, board)
         self._run(['cp', path, ':' + remote], done, port=port)
