@@ -284,11 +284,14 @@ class EditController(Controller):
             self._update_python_menu(None)
 
     def _update_python_menu(self, editor):
-        """Le menu Python n'est actif que sur un fichier Python."""
+        """
+        Le menu Python (et MicroPython : port de la carte, fichiers de la
+        carte...) est actif partout sauf sur un fichier COBOL.
+        """
         python = getattr(self.app, 'python', None)
         if python is not None:
             python.menu.menuAction().setEnabled(
-                isinstance(editor, PythonCodeEdit))
+                not isinstance(editor, CobolCodeEdit))
 
     def _get_cursor_pos_in_bytes(self, original, encoding):
         text = TextHelper(self.current_editor).current_line_text()

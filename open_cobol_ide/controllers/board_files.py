@@ -37,14 +37,8 @@ CHECK_PATH_CODE = (
     "    print('NEW')\n"
 )
 
-# Crée les dossiers manquants et le fichier vide ``p``. « mpremote cp » interroge
-# d'abord la carte sur la destination et n'accepte que l'erreur ENOENT en
-# anglais : sur une carte dont le système est traduit (CircuitPython en
-# français), copier vers un fichier inexistant échoue. Un fichier déjà créé
-# évite ce cas.
-TOUCH_PATH_CODE = (
-    "import os\n"
-    "p = %r\n"
+# Création des dossiers manquants de ``p`` (fragment commun).
+_MKDIRS = (
     "cur = ''\n"
     "for part in p.split(chr(47))[:-1]:\n"
     "    if part:\n"
@@ -53,6 +47,33 @@ TOUCH_PATH_CODE = (
     "            os.mkdir(cur)\n"
     "        except OSError:\n"
     "            pass\n"
+)
+
+# Crée un nouveau fichier ``p`` avec son contenu en UNE écriture : sur
+# CircuitPython, une seconde écriture juste après la première tombe pendant le
+# rechargement de la carte (système de fichiers en lecture seule).
+WRITE_NEW_CODE = (
+    "import os\n"
+    "p = %r\n"
+    "d = %r\n"
+    + _MKDIRS +
+    "f = open(p, 'wb')\n"
+    "f.write(d)\n"
+    "f.close()\n"
+)
+# taille maximale du contenu (repr) envoyé par cette voie : la ligne de
+# commande Windows est limitée à environ 32 000 caractères
+WRITE_NEW_MAX = 16000
+
+# Crée les dossiers manquants et le fichier vide ``p``. « mpremote cp » interroge
+# d'abord la carte sur la destination et n'accepte que l'erreur ENOENT en
+# anglais : sur une carte dont le système est traduit (CircuitPython en
+# français), copier vers un fichier inexistant échoue. Un fichier déjà créé
+# évite ce cas.
+TOUCH_PATH_CODE = (
+    "import os\n"
+    "p = %r\n"
+    + _MKDIRS +
     "open(p, 'w').close()\n"
 )
 
@@ -232,6 +253,20 @@ class BoardFilesPanel(QtCore.QObject):
             return
         self._run(['connect', 'list'], self._polled, raw=True)
 
+    def _adopt_only_board(self, ports):
+        """
+        Le port choisi n'existe plus (autre carte branchée sous un autre
+        numéro) : s'il n'y a qu'une carte, on la suit.
+        """
+        if len(ports) != 1:
+            return None
+        port, _, serial = ports[0]
+        Settings().micropython_port = port
+        Settings().micropython_board = serial or port
+        self._ui.statusbar.showMessage(
+            tr('Board port changed: %s') % port, 5000)
+        return ports[0]
+
     def _polled(self, ok, out, err):
         """Compare la carte branchée à celle dont on affiche les fichiers."""
         if not ok or not self.button.isChecked():
@@ -247,6 +282,10 @@ class BoardFilesPanel(QtCore.QObject):
                     # une autre carte sur le même port : on suit la carte
                     if current != self.board_id():
                         Settings().micropython_board = serial or port
+            if current is None:
+                only = self._adopt_only_board(ports)
+                if only is not None:
+                    current = safe_board_id(only[2] or only[0])
         elif ports:
             current = safe_board_id(ports[0][2] or ports[0][0])
         if current == self._shown_id:
@@ -530,7 +569,10 @@ class BoardFilesPanel(QtCore.QObject):
         def done(ok, out, err):
             ports = parse_port_list(out if ok else '')
             if chosen:
-                ports = [p for p in ports if p[0] == chosen]
+                present = [p for p in ports if p[0] == chosen]
+                if not present and self._adopt_only_board(ports):
+                    present = ports
+                ports = present
             if ports:
                 port, _, serial = ports[0]
                 found(safe_board_id(serial or port), port)
@@ -656,30 +698,47 @@ class BoardFilesPanel(QtCore.QObject):
 
     def _upload(self, editor, path, remote, port, board, attempt=0,
                 created=False):
+        def again():
+            QtCore.QTimer.singleShot(
+                READ_ONLY_RETRY_DELAY,
+                lambda: self._upload(editor, path, remote, port, board,
+                                     attempt + 1, created))
+
+        def written(ok, out, err):
+            message = err or out
+            if not ok and attempt < READ_ONLY_RETRIES and \
+                    is_read_only_error(message):
+                again()
+            else:
+                self._uploaded(ok, message, remote, editor, board)
+
         def done(ok, out, err):
             message = err or out
             if not ok and not created and 'Errno 2' in message:
-                # absent de la carte (nouveau fichier, ou supprimé depuis) :
-                # on crée le fichier vide, on laisse la carte se recharger,
-                # puis on envoie le contenu
-                self._run(
-                    ['exec', TOUCH_PATH_CODE % remote],
-                    lambda ok2, out2, err2: QtCore.QTimer.singleShot(
-                        AFTER_CREATE_DELAY,
-                        lambda: self._upload(editor, path, remote, port,
-                                             board, attempt, True))
-                    if ok2 else self._uploaded(
-                        False, err2 or out2, remote, editor, board),
-                    port=port)
+                # absent de la carte (nouveau fichier, ou supprimé depuis)
+                try:
+                    with open(path, 'rb') as f:
+                        data = f.read()
+                except OSError:
+                    data = None
+                if data is not None and len(repr(data)) <= WRITE_NEW_MAX:
+                    # création et contenu en une seule écriture
+                    self._run(['exec', WRITE_NEW_CODE % (remote, data)],
+                              written, port=port)
+                else:
+                    # gros fichier : fichier vide, attente du rechargement
+                    # de la carte, puis copie
+                    self._run(
+                        ['exec', TOUCH_PATH_CODE % remote],
+                        lambda ok2, out2, err2: QtCore.QTimer.singleShot(
+                            AFTER_CREATE_DELAY,
+                            lambda: self._upload(editor, path, remote, port,
+                                                 board, attempt, True))
+                        if ok2 else self._uploaded(
+                            False, err2 or out2, remote, editor, board),
+                        port=port)
                 return
-            if not ok and attempt < READ_ONLY_RETRIES and \
-                    is_read_only_error(message):
-                QtCore.QTimer.singleShot(
-                    READ_ONLY_RETRY_DELAY,
-                    lambda: self._upload(editor, path, remote, port, board,
-                                         attempt + 1, created))
-                return
-            self._uploaded(ok, message, remote, editor, board)
+            written(ok, out, err)
         self._run(['cp', path, ':' + remote], done, port=port)
 
     def _uploaded(self, ok, message, remote, editor, board):
@@ -698,6 +757,11 @@ class BoardFilesPanel(QtCore.QObject):
         if 'could not enter raw repl' in message:
             from .micropython import RAW_REPL_HINT
             message += '\n\n' + RAW_REPL_HINT()
+        elif 'failed to access' in message:
+            message += '\n\n' + tr(
+                'The board port cannot be opened. Another program (Thonny, a '
+                'terminal...) may be using it, or the board has been '
+                'replaced: choose its port in the MicroPython menu.')
         QtWidgets.QMessageBox.warning(
             self.controller.main_window, title, message)
 
