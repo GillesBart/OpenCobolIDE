@@ -88,6 +88,11 @@ AFTER_CREATE_DELAY = 2500
 READ_ONLY_RETRY_DELAY = 2000
 READ_ONLY_RETRIES = 3
 
+# Une carte absente de la liste pendant ce nombre de vérifications de suite
+# est considérée comme débranchée (un redémarrage matériel la fait disparaître
+# une ou deux secondes).
+ABSENT_POLLS = 2
+
 
 def _candidate_roots():
     """Racines des volumes amovibles du PC (lecteurs USB)."""
@@ -228,6 +233,10 @@ class BoardFilesPanel(QtCore.QObject):
         self._timer = QtCore.QTimer(self)
         self._timer.setInterval(3000)
         self._timer.timeout.connect(self._poll)
+        self._timer.start()
+        #: cartes branchées (None : pas encore vérifié) et compteur d'absences
+        self._connected = None
+        self._absent = {}
 
         self.tree = QtWidgets.QTreeWidget(ui.dockWidgetContents_4)
         self.tree.setHeaderHidden(True)
@@ -267,9 +276,6 @@ class BoardFilesPanel(QtCore.QObject):
         self.tree.setVisible(checked)
         if checked:
             self.refresh()          # toujours relire : la carte a pu changer
-            self._timer.start()
-        else:
-            self._timer.stop()
 
     def reset(self):
         """La carte (ou le port) a changé : on oublie l'arborescence."""
@@ -301,10 +307,80 @@ class BoardFilesPanel(QtCore.QObject):
 
     # ---------------------------------------------- changement de carte
     def _poll(self):
-        if not self.button.isChecked() or self._job is not None \
-                or self._queue:
+        """
+        Vérifie régulièrement les cartes branchées : l'arborescence affichée
+        suit la carte courante, et le cache des cartes débranchées est effacé.
+        """
+        if self._job is not None or self._queue:
             return
+        if self._interpreter is None and \
+                self.controller.quiet_interpreter() is None:
+            return          # mpremote pas prêt : on ne dérange pas l'utilisateur
         self._run(['connect', 'list'], self._polled, raw=True)
+
+    def _cache_boards(self):
+        try:
+            return [d for d in os.listdir(self.cache_dir())
+                    if os.path.isdir(os.path.join(self.cache_dir(), d))]
+        except OSError:
+            return []
+
+    def _update_connected(self, listed):
+        """
+        Met à jour la liste des cartes branchées et efface le cache des cartes
+        qui ne le sont plus. Les onglets déjà ouverts restent ouverts : leur
+        fichier n'existe plus, on ne peut qu'« Enregistrer sous ».
+        """
+        previous = self._connected or set()
+        present = set(listed)
+        for board in set(previous) | set(self._cache_boards()):
+            if board in listed:
+                self._absent.pop(board, None)
+                continue
+            count = self._absent.get(board, 0) + 1
+            self._absent[board] = count
+            if count < ABSENT_POLLS and board in previous:
+                present.add(board)      # peut-être un simple redémarrage
+            elif self._pending == 0:
+                self._purge_board(board)
+        if present != self._connected:
+            self._connected = present
+            self._refresh_recents()
+
+    def _purge_board(self, board):
+        """Efface le cache d'une carte débranchée."""
+        folder = os.path.join(self.cache_dir(), board)
+        prefix = os.path.normcase(os.path.abspath(folder)) + os.sep
+        for editor in self._ui.tabWidgetEditors.widgets(include_clones=True):
+            try:
+                path = os.path.normcase(os.path.abspath(editor.file.path))
+            except (AttributeError, TypeError):
+                continue
+            if path.startswith(prefix):
+                self._freeze_editor(editor)
+        shutil.rmtree(folder, ignore_errors=True)
+        self._absent.pop(board, None)
+        self._refresh_recents()
+
+    @staticmethod
+    def _freeze_editor(editor):
+        """
+        L'éditeur reste ouvert alors que son fichier va disparaître : on
+        arrête la surveillance du fichier (qui proposerait de fermer l'onglet).
+        """
+        try:
+            from pyqode.core.modes import FileWatcherMode
+            watcher = editor.modes.get(FileWatcherMode)
+            watcher._timer.stop()
+            watcher._mtime = 0
+        except (KeyError, AttributeError):
+            pass
+
+    def _refresh_recents(self):
+        """Les fichiers récents d'une carte ne sont proposés que si elle est là."""
+        files = getattr(self.app, 'file', None)
+        if files is not None:
+            files.recent_files_manager.updated.emit()
 
     def _adopt_only_board(self, ports):
         """
@@ -316,16 +392,18 @@ class BoardFilesPanel(QtCore.QObject):
         port, _, serial = ports[0]
         Settings().micropython_port = port
         Settings().micropython_board = serial or port
-        self._ui.statusbar.showMessage(
-            tr('Board port changed: %s') % port, 5000)
         return ports[0]
 
     def _polled(self, ok, out, err):
         """Compare la carte branchée à celle dont on affiche les fichiers."""
-        if not ok or not self.button.isChecked():
+        if not ok:
             return
         from .micropython import parse_port_list
         ports = parse_port_list(out)
+        self._update_connected(
+            {safe_board_id(serial or port) for port, _, serial in ports})
+        if not self.button.isChecked():
+            return
         chosen = Settings().micropython_port
         current = None
         if chosen:
@@ -716,8 +794,7 @@ class BoardFilesPanel(QtCore.QObject):
         tabs = editor.parent_tab_widget
         tabs.setTabText(tabs.indexOf(editor), editor.file.name)
         self.controller.main_window.setWindowTitle(
-            '%s [%s] - %s' % (editor.file.name, editor.file.path,
-                              self.app.title))
+            '%s - %s' % (editor.file.name, self.app.title))
 
     def _not_sent_run(self, editor):
         self._error(tr('Cannot save the file on the board'),
@@ -800,6 +877,30 @@ class BoardFilesPanel(QtCore.QObject):
             written(ok, out, err)
         self._run(['cp', path, ':' + remote], done, port=port)
 
+    def _find_folder_item(self, folder):
+        """Le dossier ``folder`` de l'arborescence, ou le plus proche déjà lu."""
+        while True:
+            stack = [self.tree.topLevelItem(i)
+                     for i in range(self.tree.topLevelItemCount())]
+            while stack:
+                item = stack.pop()
+                if item.data(0, ROLE_DIR) and \
+                        item.data(0, ROLE_PATH) == folder and \
+                        item.data(0, ROLE_STATE) == 'loaded':
+                    return item
+                stack.extend(item.child(i) for i in range(item.childCount()))
+            if folder in ('/', ''):
+                return None
+            folder = folder.rsplit('/', 1)[0] or '/'
+
+    def _refresh_remote_folder(self, remote):
+        """Relit le dossier de la carte qui contient ``remote``."""
+        if not self.button.isChecked():
+            return
+        item = self._find_folder_item(remote.rsplit('/', 1)[0] or '/')
+        if item is not None:
+            self._reload(item)
+
     @staticmethod
     def _drive_target(board, remote):
         drive = find_circuitpython_drive(board)
@@ -841,8 +942,9 @@ class BoardFilesPanel(QtCore.QObject):
     def _uploaded(self, ok, message, remote, editor, board):
         if ok:
             editor._board_synced = board
-            self._ui.statusbar.showMessage(
-                tr('Saved on the board "%s": %s') % (board, remote), 5000)
+            if not self._after:
+                # (pas pendant une exécution : un seul accès à la carte)
+                self._refresh_remote_folder(remote)
         else:
             self._mark_unsaved(editor)
             self._error(tr('Cannot save the file on the board'), message)
@@ -911,14 +1013,12 @@ class BoardFilesPanel(QtCore.QObject):
         job.done.connect(
             lambda code, out, err: self._finished(callback, code, out, err))
         self._job = job
-        self._ui.statusbar.showMessage(tr('Talking to the board...'))
         job.start()
 
     def _finished(self, callback, code, out, err):
         job, self._job = self._job, None
         if job is not None:
             job.wait()
-        self._ui.statusbar.clearMessage()
         _logger().debug('mpremote -> %s %r %r', code, out[:200], err[:200])
         try:
             callback(code == 0, out, err)

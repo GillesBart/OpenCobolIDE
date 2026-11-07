@@ -68,6 +68,9 @@ class FileController(Controller):
         self.menu_recents.update_actions()
         self.recent_files_manager.updated.connect(
             self.menu_recents.update_actions)
+        # la liste ne montre que les fichiers qui existent encore : on la
+        # relit à l'ouverture du menu (clef USB ou carte débranchée)
+        self.ui.menuFile.aboutToShow.connect(self.menu_recents.update_actions)
         self.ui.actionOpen.triggered.connect(self.request_open)
         self.ui.actionNew.triggered.connect(self.request_new)
         self.ui.actionSave.triggered.connect(
@@ -136,6 +139,16 @@ class FileController(Controller):
         Settings().last_path = path
 
     def save_current(self):
+        editor = self.ui.tabWidgetEditors.current_widget()
+        micropython = getattr(self.app, 'micropython', None)
+        if editor is not None and micropython is not None:
+            path = getattr(getattr(editor, 'file', None), 'path', None)
+            if path and not os.path.exists(path) and \
+                    micropython.board_files.is_board_file(path):
+                # copie d'un fichier d'une carte qui n'est plus là : on ne
+                # peut qu'enregistrer sous (PC, ou carte actuellement branchée)
+                self.save_as()
+                return
         try:
             self.ui.tabWidgetEditors.save_current()
         except PermissionError as e:
@@ -166,8 +179,7 @@ class FileController(Controller):
             Settings().last_path = fn
         editor = self.ui.tabWidgetEditors.current_widget()
         self.main_window.setWindowTitle(
-            '%s [%s] - %s' % (
-                editor.file.name, editor.file.path, self.app.title))
+            '%s - %s' % (editor.file.name, self.app.title))
 
     def quit(self):
         """

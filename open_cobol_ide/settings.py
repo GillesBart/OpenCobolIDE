@@ -162,11 +162,12 @@ class Settings(object):
 
     @property
     def fullscreen(self):
-        return bool(int(self._settings.value('fullscreen', '0')))
+        # l'état plein écran n'est jamais conservé d'une session à l'autre
+        return False
 
     @fullscreen.setter
     def fullscreen(self, value):
-        self._settings.setValue('fullscreen', int(value))
+        self._settings.setValue('fullscreen', 0)
 
     @property
     def size(self):
@@ -315,6 +316,15 @@ class Settings(object):
     @code_completion_trigger_len.setter
     def code_completion_trigger_len(self, value):
         self._settings.setValue('ccTriggerLen', value)
+
+    @property
+    def show_home_page(self):
+        """Afficher la page d'accueil au démarrage (sinon : onglet vide)."""
+        return bool(int(self._settings.value('showHomePage', '1')))
+
+    @show_home_page.setter
+    def show_home_page(self, value):
+        self._settings.setValue('showHomePage', int(value))
 
     @property
     def show_errors(self):

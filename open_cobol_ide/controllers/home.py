@@ -103,6 +103,10 @@ class HomeController(Controller):
         self.app.file.recent_files_manager.remove(filename)
         self.app.file.menu_recents.update_actions()
 
+    def refresh(self):
+        """Relit la liste des fichiers récents (clef USB, carte débranchée)."""
+        self._update_recents()
+
     def _update_recents(self):
         """
         Updates the recent files list.

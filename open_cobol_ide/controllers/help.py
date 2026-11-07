@@ -16,6 +16,8 @@ class HelpController(Controller):
     def __init__(self, app):
         super().__init__(app)
         self.ui.actionHelp.triggered.connect(self.show_help_contents)
+        # la page d'aide en ligne n'existe plus : F1 ne fait rien pour le moment
+        self.ui.actionHelp.setShortcut(QtGui.QKeySequence())
         self.ui.actionAbout.triggered.connect(self.show_about_dlg)
         self.ui.btAbout.clicked.connect(self.show_about_dlg)
         self.ui.actionReport_a_bug.triggered.connect(self.report_bug)

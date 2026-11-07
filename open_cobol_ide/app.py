@@ -158,11 +158,15 @@ class Application(QtCore.QObject):
         else:
             self.win.show()
             self.view.restore_state()
-            self.view.show_home_page()
             if self._files:
+                self.view.show_home_page()
                 # open specified files
                 for f in self._files:
                     self.file.open_file(f)
+            elif Settings().show_home_page:
+                self.view.show_home_page()
+            else:
+                self.edit.new_document()
         return self.app.exec_()
 
     @staticmethod

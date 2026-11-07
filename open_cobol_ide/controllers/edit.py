@@ -50,9 +50,12 @@ class EditController(Controller):
             self.ui.dockWidgetOffsets.show)
         self.ui.actionPreferences.triggered.connect(self.edit_preferences)
         self.ui.btPreferences.clicked.connect(self.edit_preferences)
-        self.ui.actionPreferences.setShortcut(QtGui.QKeySequence.Preferences)
-        if self.ui.actionPreferences.shortcut().toString().strip() == '':
-            self.ui.actionPreferences.setShortcut('F2')
+        self.ui.actionPreferences.setShortcut('Ctrl+P')
+        # F2 affiche / masque le panneau « Système de fichiers »
+        self._fs_shortcut = QtWidgets.QShortcut(
+            QtGui.QKeySequence('F2'), self.main_window)
+        self._fs_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
+        self._fs_shortcut.activated.connect(self._toggle_file_system)
         self._setup_status_bar()
         self.ui.tvFileSystem.activated.connect(self._on_tvFileSystem_activated)
         self.ui.tvFileSystem.setHeaderHidden(True)
@@ -201,11 +204,37 @@ class EditController(Controller):
             self._update_status_bar_labels()
             return editor
 
+    def _toggle_file_system(self):
+        dock = self.ui.dockWidgetFileSystem
+        dock.setVisible(not dock.isVisible())
+
+    def new_document(self):
+        """
+        Ouvre un onglet vide « nouveau.txt », sans créer de fichier : le nom
+        n'est demandé qu'à l'enregistrement.
+        """
+        tabs = self.ui.tabWidgetEditors
+        editor = tabs.create_new_document(
+            base_name='nouveau', extension='.txt',
+            preferred_eol=Settings().preferred_eol,
+            autodetect_eol=Settings().autodetect_eol)
+        editor.app = weakref.ref(self.app)
+        update_editor_settings(editor)
+        name = 'nouveau.txt'
+        editor.setDocumentTitle(name)
+        tabs_widget = editor.parent_tab_widget
+        tabs_widget.setTabText(tabs_widget.indexOf(editor), name)
+        self.app.view.show_edit_page()
+        return editor
+
     def _on_last_tab_closed(self):
         self.main_window.save_state()
         self.main_window.setWindowTitle(self.app.title)
         self.ui.twNavigation.set_editor(None)
-        self.app.view.show_home_page()
+        if Settings().show_home_page:
+            self.app.view.show_home_page()
+        else:
+            self.new_document()
 
     def _current_changed(self, new_index):
         """
@@ -216,8 +245,7 @@ class EditController(Controller):
         if new_index != -1:
             editor = self.ui.tabWidgetEditors.current_widget()
             self.main_window.setWindowTitle(
-                '%s [%s] - %s' % (
-                    editor.file.name, editor.file.path, self.app.title))
+                '%s - %s' % (editor.file.name, self.app.title))
             # update tools (outline and offsets table)
             self.ui.twNavigation.set_editor(editor)
             if self.ui.btFSLock.isChecked() and \
@@ -351,13 +379,12 @@ class EditController(Controller):
                     self.ui.actionEnableLinter.setEnabled(True)
 
     def _on_file_deleted(self, editor):
-        if QtWidgets.QMessageBox.question(
-                self.main_window, tr('Close editor?'),
-                tr('%s has been deleted externally. Do you want to close its '
-                'editor?') % editor.file.path,
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
-            self.ui.tabWidgetEditors.close_document(editor.file.path)
+        """
+        Le fichier a disparu (carte ou clef USB débranchée, fichier supprimé) :
+        l'onglet reste ouvert, avec son contenu ; on ne peut plus qu'
+        « Enregistrer sous ».
+        """
+        _logger().debug('file deleted: %s', editor.file.path)
 
     def _fs_go_up(self):
         """

@@ -66,6 +66,6 @@ def update_editor_settings(editor):
         editor.margins.positions = settings.margin_positions
         editor.margins.colors = [QtGui.QColor(c)
                                  for c in settings.margin_colors]
-    except AttributeError as e:
-        print(e)
-        editor.syntax_highlighter.pygments_style = settings.color_scheme
+    except AttributeError:
+        # éditeur ordinaire (ni COBOL ni Python) : thème « Autres fichiers »
+        editor.syntax_highlighter.pygments_style = scheme

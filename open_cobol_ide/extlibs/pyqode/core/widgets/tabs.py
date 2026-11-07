@@ -450,8 +450,9 @@ class TabWidget(QTabWidget):
 
     def _on_file_deleted(self, editor):
         """
-        Removes deleted files from the tab widget.
+        A deleted file does not close its tab any more: the editor keeps its
+        content and can be saved elsewhere (« Save as »).
 
-        ;:param editor: CodeEdit to remove
+        ;:param editor: CodeEdit whose file was deleted
         """
-        self.removeTab(self.indexOf(editor))
+        pass

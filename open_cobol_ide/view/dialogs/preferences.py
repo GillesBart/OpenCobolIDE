@@ -86,6 +86,10 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
                          QtCore.Qt.WindowTitleHint |
                          QtCore.Qt.WindowCloseButtonHint)
         self.setupUi(self)
+        # démarrage : page d'accueil ou onglet vide
+        self.checkBoxShowHome = QtWidgets.QCheckBox(self.groupBox_3)
+        self.formLayout.addRow(tr('Show the home page at startup'),
+                               self.checkBoxShowHome)
         self._help_dlg = None
         themes = system.icon_themes()
         if themes:
@@ -462,6 +466,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
             self.cb_cursor_pos_in_bytes.setChecked(
                 settings.show_cursor_pos_in_bytes)
             self.checkBoxShowErrors.setChecked(settings.show_errors)
+            self.checkBoxShowHome.setChecked(settings.show_home_page)
             self.checkBoxViewLineNumber.setChecked(settings.display_lines)
             self.checkBoxHighlightCurrentLine.setChecked(
                 settings.highlight_caret)
@@ -715,6 +720,7 @@ class DlgPreferences(QtWidgets.QDialog, dlg_preferences_ui.Ui_Dialog):
             self.comboBoxStandard.currentIndex())
         settings.icon_theme = self.comboBoxIconTheme.currentText()
         settings.show_errors = self.checkBoxShowErrors.isChecked()
+        settings.show_home_page = self.checkBoxShowHome.isChecked()
         settings.enable_smart_backspace = \
             self.checkBoxSmartBackspace.isChecked()
         paths = []

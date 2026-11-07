@@ -195,10 +195,7 @@ class MicroPythonController(Controller):
             ['exec', 'pass'], self._interrupted))
 
     def _interrupted(self, ok, out, err):
-        if ok:
-            self.ui.statusbar.showMessage(
-                tr('Program interrupted on the board'), 5000)
-        else:
+        if not ok:
             self._info(tr('Stop'), err or out)
 
     def _current_python_file(self):

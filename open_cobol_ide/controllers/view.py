@@ -193,6 +193,9 @@ class ViewController(Controller):
         """
         self.show_page(Page.HOME)
         self.ui.tableWidgetOffsets.set_editor(None)
+        home = getattr(self.app, 'home', None)
+        if home is not None:
+            home.refresh()
 
     def show_edit_page(self):
         """
