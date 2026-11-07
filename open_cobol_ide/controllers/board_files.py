@@ -27,7 +27,11 @@ def _logger():
 # Liste d'un dossier : une ligne « D|F <tab> taille <tab> nom » par entrée.
 # Seulement os.listdir et os.stat (os.ilistdir manque à CircuitPython).
 # Prépare l'enregistrement d'un fichier à ``p`` : dit s'il existe déjà
-# (EXISTS/NEW) et crée les dossiers manquants.
+# (EXISTS/NEW) et, s'il est nouveau, crée les dossiers manquants et le fichier
+# vide. « mpremote cp » interroge d'abord la carte sur la destination et
+# n'accepte que l'erreur ENOENT en anglais : sur une carte dont le système est
+# traduit (CircuitPython en français), copier vers un fichier inexistant
+# échoue. Un fichier déjà créé évite ce cas.
 PREPARE_PATH_CODE = (
     "import os\n"
     "p = %r\n"
@@ -36,14 +40,15 @@ PREPARE_PATH_CODE = (
     "    print('EXISTS')\n"
     "except OSError:\n"
     "    print('NEW')\n"
-    "cur = ''\n"
-    "for part in p.split(chr(47))[:-1]:\n"
-    "    if part:\n"
-    "        cur = cur + chr(47) + part\n"
-    "        try:\n"
-    "            os.mkdir(cur)\n"
-    "        except OSError:\n"
-    "            pass\n"
+    "    cur = ''\n"
+    "    for part in p.split(chr(47))[:-1]:\n"
+    "        if part:\n"
+    "            cur = cur + chr(47) + part\n"
+    "            try:\n"
+    "                os.mkdir(cur)\n"
+    "            except OSError:\n"
+    "                pass\n"
+    "    open(p, 'w').close()\n"
 )
 
 LIST_DIR_CODE = (
@@ -631,10 +636,22 @@ class BoardFilesPanel(QtCore.QObject):
         except RuntimeError:
             pass        # onglet fermé entre-temps
 
-    def _upload(self, editor, path, remote, port, board):
-        self._run(['cp', path, ':' + remote],
-                  lambda ok, out, err: self._uploaded(
-                      ok, err or out, remote, editor, board), port=port)
+    def _upload(self, editor, path, remote, port, board, retry=True):
+        def done(ok, out, err):
+            message = err or out
+            if not ok and retry and 'Errno 2' in message:
+                # fichier ou dossier absent de la carte (supprimé depuis ?) :
+                # on le crée puis on renvoie une fois
+                self._run(
+                    ['exec', PREPARE_PATH_CODE % remote],
+                    lambda ok2, out2, err2: self._upload(
+                        editor, path, remote, port, board, retry=False)
+                    if ok2 else self._uploaded(
+                        False, err2 or out2, remote, editor, board),
+                    port=port)
+                return
+            self._uploaded(ok, message, remote, editor, board)
+        self._run(['cp', path, ':' + remote], done, port=port)
 
     def _uploaded(self, ok, message, remote, editor, board):
         if ok:
