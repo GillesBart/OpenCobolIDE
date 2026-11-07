@@ -7,9 +7,13 @@ dans un fil d'exécution séparé pour ne pas figer l'interface. Un fichier de l
 carte est copié dans ``data/cache/board/`` puis ouvert dans l'éditeur ; à
 chaque enregistrement, il est renvoyé sur la carte.
 """
+import glob
 import logging
 import os
+import re
+import shutil
 import subprocess
+import sys
 
 from pyqode.qt import QtCore, QtWidgets
 
@@ -83,6 +87,55 @@ TOUCH_PATH_CODE = (
 AFTER_CREATE_DELAY = 2500
 READ_ONLY_RETRY_DELAY = 2000
 READ_ONLY_RETRIES = 3
+
+
+def _candidate_roots():
+    """Racines des volumes amovibles du PC (lecteurs USB)."""
+    roots = []
+    if sys.platform == 'win32':
+        try:
+            import ctypes
+            kernel = ctypes.windll.kernel32
+            mask = kernel.GetLogicalDrives()
+            for i in range(26):
+                root = chr(65 + i) + ':\\'
+                if mask & (1 << i) and kernel.GetDriveTypeW(root) == 2:
+                    roots.append(root)        # 2 : DRIVE_REMOVABLE
+        except Exception:
+            _logger().exception('cannot list the drives')
+    else:
+        for pattern in ('/media/*/*', '/run/media/*/*', '/Volumes/*',
+                        '/mnt/*'):
+            roots += glob.glob(pattern)
+    return roots
+
+
+def find_circuitpython_drive(board, roots=None):
+    """
+    Cherche le lecteur USB (CIRCUITPY) de la carte ``board`` : le PC l'a monté,
+    et un programme de la carte n'a alors plus le droit d'y écrire. Le fichier
+    boot_out.txt du lecteur contient « UID:<numéro de série> ».
+
+    :return: la racine du lecteur, ou None
+    """
+    found = []
+    for root in (_candidate_roots() if roots is None else roots):
+        try:
+            with open(os.path.join(root, 'boot_out.txt'), encoding='utf-8',
+                      errors='replace') as f:
+                text = f.read(2000)
+        except OSError:
+            continue
+        if 'CircuitPython' not in text:
+            continue
+        match = re.search(r'UID:([0-9A-Fa-f]+)', text)
+        found.append((root, match.group(1).upper() if match else None))
+    for root, uid in found:
+        if uid is not None and uid == (board or '').upper():
+            return root
+    if len(found) == 1 and found[0][1] is None:
+        return found[0][0]      # ancienne version, sans UID : un seul lecteur
+    return None
 
 
 def is_read_only_error(message):
@@ -347,6 +400,9 @@ class BoardFilesPanel(QtCore.QObject):
             ok, err or out, folder, remote, is_dir, title))
 
     def _created(self, ok, message, folder, remote, is_dir, title):
+        if not ok and is_read_only_error(message):
+            board = self._shown_id or self.board_id()
+            ok = self._create_via_drive(remote, is_dir, board)
         if not ok:
             self._error(title, message)
             return
@@ -706,11 +762,14 @@ class BoardFilesPanel(QtCore.QObject):
 
         def written(ok, out, err):
             message = err or out
-            if not ok and attempt < READ_ONLY_RETRIES and \
-                    is_read_only_error(message):
-                again()
-            else:
-                self._uploaded(ok, message, remote, editor, board)
+            if not ok and is_read_only_error(message):
+                if self._write_via_drive(path, remote, board):
+                    self._uploaded(True, '', remote, editor, board)
+                    return
+                if attempt < READ_ONLY_RETRIES:
+                    again()
+                    return
+            self._uploaded(ok, message, remote, editor, board)
 
         def done(ok, out, err):
             message = err or out
@@ -741,6 +800,44 @@ class BoardFilesPanel(QtCore.QObject):
             written(ok, out, err)
         self._run(['cp', path, ':' + remote], done, port=port)
 
+    @staticmethod
+    def _drive_target(board, remote):
+        drive = find_circuitpython_drive(board)
+        if drive is None:
+            return None
+        return os.path.join(drive, *[p for p in remote.split('/') if p])
+
+    def _write_via_drive(self, path, remote, board):
+        """
+        Carte en lecture seule pour ses programmes : on copie le fichier sur
+        son lecteur USB (comme le fait Thonny).
+        """
+        target = self._drive_target(board, remote)
+        if target is None:
+            return False
+        try:
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.copyfile(path, target)
+        except OSError:
+            _logger().exception('cannot write on the drive')
+            return False
+        return True
+
+    def _create_via_drive(self, remote, is_dir, board):
+        target = self._drive_target(board, remote)
+        if target is None:
+            return False
+        try:
+            if is_dir:
+                os.makedirs(target, exist_ok=True)
+            else:
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                open(target, 'ab').close()
+        except OSError:
+            _logger().exception('cannot create on the drive')
+            return False
+        return True
+
     def _uploaded(self, ok, message, remote, editor, board):
         if ok:
             editor._board_synced = board
@@ -757,6 +854,14 @@ class BoardFilesPanel(QtCore.QObject):
         if 'could not enter raw repl' in message:
             from .micropython import RAW_REPL_HINT
             message += '\n\n' + RAW_REPL_HINT()
+        elif is_read_only_error(message):
+            message += '\n\n' + tr(
+                'The board cannot be written by its own programs because the '
+                'computer has mounted its USB drive (CIRCUITPY), and this '
+                'drive was not found. Check that it is visible in the file '
+                'explorer, or add these two lines to the board\'s boot.py '
+                '(the computer will then see the drive as read-only): '
+                'import storage / storage.remount("/", readonly=False)')
         elif 'failed to access' in message:
             message += '\n\n' + tr(
                 'The board port cannot be opened. Another program (Thonny, a '
