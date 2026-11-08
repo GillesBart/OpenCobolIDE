@@ -133,6 +133,10 @@ class FileController(Controller):
                     QtWidgets.QMessageBox.No)
                 if answer == QtWidgets.QMessageBox.No:
                     return
+        micropython = getattr(self.app, 'micropython', None)
+        if micropython is not None and \
+                micropython.board_files.open_cached(path):
+            return          # fichier d'une carte : relu sur la carte
         self.app.edit.add_editor(path)
         self.app.view.show_edit_page()
         self.app.file.recent_files_manager.open_file(path)

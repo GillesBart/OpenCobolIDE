@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 
 from pyqode.qt import QtCore, QtWidgets
 
@@ -92,6 +93,9 @@ READ_ONLY_RETRIES = 3
 # est considérée comme débranchée (un redémarrage matériel la fait disparaître
 # une ou deux secondes).
 ABSENT_POLLS = 2
+
+# Âge maximal (secondes) de la dernière liste des cartes branchées.
+PORTS_MAX_AGE = 4.0
 
 
 def _candidate_roots():
@@ -237,6 +241,7 @@ class BoardFilesPanel(QtCore.QObject):
         self._timer.setInterval(3000)
         self._timer.timeout.connect(self._poll)
         self._timer.start()
+        self._ports_seen = None     # (heure, liste des cartes branchées)
         #: cartes branchées (None : pas encore vérifié) et compteur d'absences
         self._connected = None
         self._absent = {}
@@ -279,6 +284,8 @@ class BoardFilesPanel(QtCore.QObject):
         self.tree.setVisible(checked)
         if checked:
             self.refresh()          # toujours relire : la carte a pu changer
+        elif ui.tvFileSystem.root_path is None:
+            ui.tvFileSystem.set_root_path(Settings().last_path)
 
     def reset(self):
         """La carte (ou le port) a changé : on oublie l'arborescence."""
@@ -401,33 +408,51 @@ class BoardFilesPanel(QtCore.QObject):
         """Compare la carte branchée à celle dont on affiche les fichiers."""
         if not ok:
             return
-        from .micropython import parse_port_list
-        ports = parse_port_list(out)
+        ports = self._note_ports(out)
         self._update_connected(
             {safe_board_id(serial or port) for port, _, serial in ports})
         if not self.button.isChecked():
             return
-        chosen = Settings().micropython_port
-        current = None
-        if chosen:
-            for port, _, serial in ports:
-                if port == chosen:
-                    current = safe_board_id(serial or port)
-                    # une autre carte sur le même port : on suit la carte
-                    if current != self.board_id():
-                        Settings().micropython_board = serial or port
-            if current is None:
-                only = self._adopt_only_board(ports)
-                if only is not None:
-                    current = safe_board_id(only[2] or only[0])
-        elif ports:
-            current = safe_board_id(ports[0][2] or ports[0][0])
+        found = self._resolve_board(ports)
+        current = found[0] if found else None
         if current == self._shown_id:
             return
         if current is None:
             self._show_no_board()
         else:
             self._load_root(current)
+
+    def _note_ports(self, out):
+        """
+        Retient les cartes branchées (liste de mpremote) et met les réglages en
+        accord avec elles : une autre carte peut avoir pris le même numéro de
+        port, ou la carte choisie avoir été remplacée par une seule autre.
+        """
+        from .micropython import parse_port_list
+        ports = parse_port_list(out)
+        self._ports_seen = (time.monotonic(), ports)
+        chosen = Settings().micropython_port
+        if chosen:
+            for port, _, serial in ports:
+                if port == chosen:
+                    if safe_board_id(serial or port) != self.board_id():
+                        Settings().micropython_board = serial or port
+                    break
+            else:
+                self._adopt_only_board(ports)
+        return ports
+
+    def _resolve_board(self, ports):
+        """
+        :return: (identifiant, port) de la carte utilisée parmi ``ports``, ou
+                 None. Port choisi dans les préférences, sinon la première
+                 carte USB (comme le fait mpremote).
+        """
+        chosen = Settings().micropython_port
+        for port, _, serial in ports:
+            if not chosen or port == chosen:
+                return safe_board_id(serial or port), port
+        return None
 
     def _new_item(self, name, is_dir, path=None, size=0):
         item = QtWidgets.QTreeWidgetItem([name])
@@ -642,27 +667,82 @@ class BoardFilesPanel(QtCore.QObject):
         """
         Appelle ``callback(identifiant, port)`` pour la carte utilisée.
 
-        Port choisi : on le connaît. Détection automatique : mpremote prend la
-        première carte USB trouvée, qui peut changer d'un moment à l'autre ;
-        on la cherche donc maintenant, pour ranger les fichiers sous son
-        propre identifiant et ne pas les mélanger avec ceux d'une autre carte.
+        L'identité de la carte est relevée en direct (liste des cartes
+        branchées, au plus vieille de quelques secondes) : le numéro de port
+        mémorisé peut avoir été repris par une autre carte, et les fichiers
+        doivent être rangés sous la carte réelle.
         """
-        if Settings().micropython_port:
-            callback(self.board_id(), None)
+        def missing():
+            if on_missing is not None:
+                on_missing()
+            else:
+                self._error(tr('Board port'), tr('No board detected.'))
+
+        def resolve(ports):
+            found = self._resolve_board(ports)
+            if found is None:
+                missing()
+            else:
+                callback(*found)
+
+        seen = self._ports_seen
+        if seen is not None and time.monotonic() - seen[0] < PORTS_MAX_AGE:
+            resolve(seen[1])
             return
-        from .micropython import parse_port_list
 
         def done(ok, out, err):
-            ports = parse_port_list(out if ok else '')
-            if not ports:
-                if on_missing is not None:
-                    on_missing()
-                else:
-                    self._error(tr('Board port'), tr('No board detected.'))
-                return
-            port, _, serial = ports[0]
-            callback(safe_board_id(serial or port), port)
+            resolve(self._note_ports(out) if ok else [])
         self._run(['connect', 'list'], done, raw=True)
+
+    def locate_board(self, board, found, missing):
+        """``found(port)`` si la carte ``board`` est branchée, sinon ``missing()``."""
+        def check(ports):
+            for port, _, serial in ports:
+                if safe_board_id(serial or port) == board:
+                    found(port)
+                    return
+            missing()
+
+        seen = self._ports_seen
+        if seen is not None and time.monotonic() - seen[0] < PORTS_MAX_AGE:
+            check(seen[1])
+            return
+        self._run(['connect', 'list'],
+                  lambda ok, out, err: check(self._note_ports(out) if ok
+                                             else []), raw=True)
+
+    def open_cached(self, path):
+        """
+        Un fichier de carte (copie du cache) est demandé par les fichiers
+        récents ou l'arborescence du PC : on ne l'ouvre pas tel quel, on relit
+        le vrai fichier sur la carte, comme depuis la liste de la carte.
+
+        :return: vrai si la demande est prise en charge ici
+        """
+        info = self.split_cache_path(path)
+        if info is None:
+            return False
+        board, remote = info
+        key = os.path.normcase(os.path.abspath(path))
+        for editor in self._ui.tabWidgetEditors.widgets(include_clones=True):
+            try:
+                if os.path.normcase(os.path.abspath(editor.file.path)) == key:
+                    return False        # déjà ouvert : simple mise au premier plan
+            except (AttributeError, TypeError):
+                continue
+        self.locate_board(
+            board, lambda port: self._switch_and_open(board, port, remote),
+            lambda: self._error(
+                tr('Board port'),
+                tr('The board of this file is not connected.')))
+        return True
+
+    def _switch_and_open(self, board, port, remote):
+        """Choisit la carte du fichier, affiche son contenu et ouvre le fichier."""
+        Settings().micropython_port = port
+        Settings().micropython_board = board
+        self.show_board()
+        self._open_remote(remote, board, port)
 
     def attach(self, editor, force=False):
         """
