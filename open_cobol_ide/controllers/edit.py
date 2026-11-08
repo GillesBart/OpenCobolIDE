@@ -56,6 +56,17 @@ class EditController(Controller):
             QtGui.QKeySequence('F2'), self.main_window)
         self._fs_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
         self._fs_shortcut.activated.connect(self._toggle_file_system)
+        # F3 : navigation, F4 : journaux
+        self._nav_shortcut = QtWidgets.QShortcut(
+            QtGui.QKeySequence('F3'), self.main_window)
+        self._nav_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
+        self._nav_shortcut.activated.connect(
+            lambda: self._toggle_dock(self.ui.dockWidgetNavPanel))
+        self._logs_shortcut = QtWidgets.QShortcut(
+            QtGui.QKeySequence('F4'), self.main_window)
+        self._logs_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
+        self._logs_shortcut.activated.connect(
+            lambda: self._toggle_dock(self.ui.dockWidgetLogs))
         self._setup_status_bar()
         self.ui.tvFileSystem.activated.connect(self._on_tvFileSystem_activated)
         self.ui.tvFileSystem.setHeaderHidden(True)
@@ -205,7 +216,10 @@ class EditController(Controller):
             return editor
 
     def _toggle_file_system(self):
-        dock = self.ui.dockWidgetFileSystem
+        self._toggle_dock(self.ui.dockWidgetFileSystem)
+
+    @staticmethod
+    def _toggle_dock(dock):
         dock.setVisible(not dock.isVisible())
 
     def new_document(self):
@@ -220,6 +234,10 @@ class EditController(Controller):
             autodetect_eol=Settings().autodetect_eol)
         editor.app = weakref.ref(self.app)
         update_editor_settings(editor)
+        if not self.ui.btFSLock.isChecked():
+            # arborescence du PC : dernier dossier utilisé (sans fichier ouvert,
+            # elle n'aurait sinon aucune racine)
+            self.ui.tvFileSystem.set_root_path(Settings().last_path)
         name = 'nouveau.txt'
         editor.setDocumentTitle(name)
         tabs_widget = editor.parent_tab_widget

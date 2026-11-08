@@ -171,14 +171,14 @@ class SearchAndReplacePanel(Panel, Ui_SearchPanel):
 
         icon = icons.icon('go-up', ':/pyqode-icons/rc/go-up.png',
                           'fa.arrow-up')
-        self.actionFindPrevious.setShortcut('Shift+F3')
+        self.actionFindPrevious.setShortcut('Ctrl+Shift+G')
         self.actionFindPrevious.setIcon(icon)
         self.toolButtonPrevious.setIcon(icon)
         self.toolButtonPrevious.setIconSize(icon_size)
 
         icon = icons.icon('go-down', ':/pyqode-icons/rc/go-down.png',
                           'fa.arrow-down')
-        self.actionFindNext.setShortcut('F3')
+        self.actionFindNext.setShortcut('Ctrl+G')
         self.actionFindNext.setIcon(icon)
         self.toolButtonNext.setIcon(icon)
         self.toolButtonNext.setIconSize(icon_size)

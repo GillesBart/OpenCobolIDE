@@ -309,6 +309,8 @@ class FileSystemTreeView(QtWidgets.QTreeView):
             self._fs_model_proxy.mapToSource(index))
 
     def _show_context_menu(self, point):
+        if getattr(self, '_fs_model_source', None) is None:
+            return      # aucun dossier affiché : rien à proposer
         if self.context_menu:
             self.about_to_show_context_menu.emit(
                 FileSystemHelper(self).get_current_path())

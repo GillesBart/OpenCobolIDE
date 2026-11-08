@@ -44,6 +44,9 @@ class MainWindow(QtWidgets.QMainWindow):
         s = Settings()
         if s.geometry:
             self.restoreGeometry(s.geometry)
+        # la géométrie enregistrée peut contenir l'état « plein écran »
+        # (anciennes sessions) : on démarre toujours en fenêtre normale
+        self.setWindowState(self.windowState() & ~QtCore.Qt.WindowFullScreen)
         if s.state:
             self.restoreState(s.state)
         self.wasMaximised = s.maximised
@@ -55,13 +58,24 @@ class MainWindow(QtWidgets.QMainWindow):
         Saves the window state and geometry to the settings.
         """
         s = Settings()
-        s.geometry = self.saveGeometry()
-        s.state = self.saveState()
+        # le plein écran (F11) n'est jamais enregistré : la géométrie est
+        # prise sans cet état, sinon la fenêtre redémarre en plein écran
+        fullscreen = self.isFullScreen()
+        if fullscreen:
+            self.setWindowState(
+                self.windowState() & ~QtCore.Qt.WindowFullScreen)
+        try:
+            s.geometry = self.saveGeometry()
+            s.state = self.saveState()
+        finally:
+            if fullscreen:
+                self.setWindowState(
+                    self.windowState() | QtCore.Qt.WindowFullScreen)
         s.maximised = self.isMaximized()
         s.size = self.size()
         if self.ui.stackedWidget.currentIndex() == 1:
             s.outline_visible = self.ui.dockWidgetNavPanel.isVisible()
-            s.fullscreen = self.isFullScreen()
+        s.fullscreen = False
 
     def closeEvent(self, event):
         """
