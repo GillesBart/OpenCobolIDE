@@ -56,14 +56,14 @@ class EditController(Controller):
             QtGui.QKeySequence('F2'), self.main_window)
         self._fs_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
         self._fs_shortcut.activated.connect(self._toggle_file_system)
-        # F3 : navigation, F4 : journaux
+        # F6 : navigation, F9 : journaux (F3/F4 restent à la recherche)
         self._nav_shortcut = QtWidgets.QShortcut(
-            QtGui.QKeySequence('F3'), self.main_window)
+            QtGui.QKeySequence('F6'), self.main_window)
         self._nav_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
         self._nav_shortcut.activated.connect(
             lambda: self._toggle_dock(self.ui.dockWidgetNavPanel))
         self._logs_shortcut = QtWidgets.QShortcut(
-            QtGui.QKeySequence('F4'), self.main_window)
+            QtGui.QKeySequence('F9'), self.main_window)
         self._logs_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
         self._logs_shortcut.activated.connect(
             lambda: self._toggle_dock(self.ui.dockWidgetLogs))

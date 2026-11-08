@@ -148,6 +148,9 @@ def is_read_only_error(message):
                ('Errno 30', 'ead-only', 'lecture seule'))
 
 
+DELETE_FILE_CODE = "import os\np = %r\nos.remove(p)\n"
+DELETE_DIR_CODE = "import os\np = %r\nos.rmdir(p)\n"
+
 LIST_DIR_CODE = (
     "import os\n"
     "p = %r\n"
@@ -442,6 +445,9 @@ class BoardFilesPanel(QtCore.QObject):
         item = self.tree.itemAt(pos)
         folder = self._folder_item(item)
         menu = QtWidgets.QMenu(self.tree)
+        if item is not None and item.data(0, ROLE_PATH) not in (None, '/'):
+            menu.addAction(tr('Delete...'), lambda: self._delete(item))
+            menu.addSeparator()
         if folder is not None:
             menu.addAction(tr('New file...'),
                            lambda: self._new_entry(folder, False))
@@ -450,6 +456,73 @@ class BoardFilesPanel(QtCore.QObject):
             menu.addSeparator()
         menu.addAction(tr('Refresh'), self.refresh)
         menu.exec_(self.tree.mapToGlobal(pos))
+
+    def _delete(self, item):
+        """Supprime un fichier (ou un dossier vide) de la carte, après accord."""
+        remote = item.data(0, ROLE_PATH)
+        is_dir = bool(item.data(0, ROLE_DIR))
+        text = tr('Delete the folder "%s" from the board?') if is_dir \
+            else tr('Delete the file "%s" from the board?')
+        if QtWidgets.QMessageBox.question(
+                self.controller.main_window, tr('Delete'),
+                text % remote + '\n' + tr('This cannot be undone.'),
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                QtWidgets.QMessageBox.No) != QtWidgets.QMessageBox.Yes:
+            return
+        board = self._shown_id or self.board_id()
+        code = (DELETE_DIR_CODE if is_dir else DELETE_FILE_CODE) % remote
+        self._run(['exec', code],
+                  lambda ok, out, err: self._deleted(
+                      ok, err or out, remote, is_dir, board, item.parent()))
+
+    def _deleted(self, ok, message, remote, is_dir, board, parent):
+        if not ok and is_read_only_error(message):
+            ok = self._delete_via_drive(remote, is_dir, board)
+        if not ok:
+            self._error(tr('Delete'), message)
+            return
+        self._forget_cache_copy(remote, board)
+        if parent is not None:
+            try:
+                self._reload(parent)
+            except RuntimeError:
+                self.refresh()
+
+    def _delete_via_drive(self, remote, is_dir, board):
+        target = self._drive_target(board, remote)
+        if target is None:
+            return False
+        try:
+            if is_dir:
+                os.rmdir(target)
+            else:
+                os.remove(target)
+        except OSError:
+            _logger().exception('cannot delete on the drive')
+            return False
+        return True
+
+    def _forget_cache_copy(self, remote, board):
+        """
+        Efface la copie locale d'un fichier supprimé de la carte. Un onglet
+        ouvert dessus reste ouvert : il faudra « Enregistrer sous ».
+        """
+        local = self.local_path(remote, board)
+        key = os.path.normcase(os.path.abspath(local))
+        for editor in self._ui.tabWidgetEditors.widgets(include_clones=True):
+            try:
+                if os.path.normcase(os.path.abspath(editor.file.path)) == key:
+                    self._freeze_editor(editor)
+            except (AttributeError, TypeError):
+                continue
+        try:
+            if os.path.isdir(local):
+                shutil.rmtree(local, ignore_errors=True)
+            elif os.path.exists(local):
+                os.remove(local)
+        except OSError:
+            pass
+        self._refresh_recents()
 
     def _folder_item(self, item):
         """Dossier dans lequel créer : l'élément, son parent, ou la racine."""
