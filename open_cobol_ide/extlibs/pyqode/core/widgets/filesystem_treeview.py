@@ -253,6 +253,9 @@ class FileSystemTreeView(QtWidgets.QTreeView):
 
         if os.path.isfile(path):
             path = os.path.abspath(os.path.join(path, os.pardir))
+        # une seule écriture du chemin (sans barre finale, séparateurs du
+        # système) : les comparaisons ci-dessous se font sur du texte
+        path = os.path.normpath(path)
         self._fs_model_source = QtWidgets.QFileSystemModel()
         self._fs_model_source.setFilter(QtCore.QDir.Dirs | QtCore.QDir.Files |
                                         QtCore.QDir.NoDotAndDotDot |
@@ -271,7 +274,8 @@ class FileSystemTreeView(QtWidgets.QTreeView):
         self._fs_model_source.setRootPath(self._root_path)
 
     def _on_path_loaded(self, path):
-        if os.path.normpath(path) != self._root_path:
+        if os.path.normcase(os.path.normpath(path)) != \
+                os.path.normcase(os.path.normpath(self._root_path)):
             return
         try:
             self.setModel(self._fs_model_proxy)

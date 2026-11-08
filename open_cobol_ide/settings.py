@@ -192,7 +192,7 @@ class Settings(object):
         """
         path = system.from_portable(self._settings.value('lastUsedPath', ''))
         if path and os.path.isdir(path):
-            return path
+            return os.path.normpath(path)
         # jamais défini, ou dossier disparu (autre lecteur...) : Documents
         return system.documents_dir()
 

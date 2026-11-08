@@ -272,6 +272,7 @@ class EditController(Controller):
                     else Settings().last_path
                 if not os.path.isdir(new_root):
                     new_root = Settings().last_path
+                new_root = os.path.normpath(new_root)
                 if new_root != self.ui.tvFileSystem.root_path:
                     self.ui.tvFileSystem.set_root_path(new_root)
             self.ui.tableWidgetOffsets.set_editor(editor)
