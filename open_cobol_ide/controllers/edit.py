@@ -236,6 +236,8 @@ class EditController(Controller):
         self.main_window.save_state()
         self.main_window.setWindowTitle(self.app.title)
         self.ui.twNavigation.set_editor(None)
+        if getattr(self.main_window, 'closing', False):
+            return          # fermeture de l'IDE : rien à afficher
         if Settings().show_home_page:
             self.app.view.show_home_page()
         else:
@@ -263,7 +265,13 @@ class EditController(Controller):
             on_board = micropython is not None and \
                 micropython.board_files.is_board_file(editor.file.path)
             if not self.ui.btFSLock.isChecked() and not on_board:
-                new_root = os.path.dirname(editor.file.path)
+                path = editor.file.path or ''
+                # un document pas encore enregistré (« nouveau.txt ») n'a pas
+                # de dossier : on garde le dernier dossier utilisé
+                new_root = os.path.dirname(path) if os.path.isabs(path) \
+                    else Settings().last_path
+                if not os.path.isdir(new_root):
+                    new_root = Settings().last_path
                 if new_root != self.ui.tvFileSystem.root_path:
                     self.ui.tvFileSystem.set_root_path(new_root)
             self.ui.tableWidgetOffsets.set_editor(editor)

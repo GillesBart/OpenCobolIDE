@@ -76,7 +76,11 @@ class FileSystemTreeView(QtWidgets.QTreeView):
             self._ignored_unused[:] = []
             self._root = path
             parent_dir = os.path.dirname(path)
-            for item in os.listdir(parent_dir):
+            try:
+                items = os.listdir(parent_dir)
+            except OSError:
+                return      # dossier inexistant (document pas encore enregistré)
+            for item in items:
                 item_path = os.path.join(parent_dir, item)
                 if item_path != path:
                     self._ignored_unused.append(os.path.normpath(item_path))

@@ -82,7 +82,11 @@ class MainWindow(QtWidgets.QMainWindow):
         Handle close event, gives the user a chance to save its work or not.
         """
         _logger().debug('CLOSING')
+        # (la fermeture du dernier onglet ne doit pas en ouvrir un nouveau)
+        self.closing = True
         self.ui.tabWidgetEditors.closeEvent(event)
+        if not event.isAccepted():
+            self.closing = False        # fermeture annulée par l'utilisateur
         if event.isAccepted():
             console = self.ui.consoleOutput
             if console.is_running:
