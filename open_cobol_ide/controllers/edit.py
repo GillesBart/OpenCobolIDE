@@ -51,22 +51,16 @@ class EditController(Controller):
         self.ui.actionPreferences.triggered.connect(self.edit_preferences)
         self.ui.btPreferences.clicked.connect(self.edit_preferences)
         self.ui.actionPreferences.setShortcut('Ctrl+P')
-        # F2 affiche / masque le panneau « Système de fichiers »
-        self._fs_shortcut = QtWidgets.QShortcut(
-            QtGui.QKeySequence('F2'), self.main_window)
-        self._fs_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
-        self._fs_shortcut.activated.connect(self._toggle_file_system)
-        # F6 : navigation, F9 : journaux (F3/F4 restent à la recherche)
-        self._nav_shortcut = QtWidgets.QShortcut(
-            QtGui.QKeySequence('F6'), self.main_window)
-        self._nav_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
-        self._nav_shortcut.activated.connect(
-            lambda: self._toggle_dock(self.ui.dockWidgetNavPanel))
-        self._logs_shortcut = QtWidgets.QShortcut(
-            QtGui.QKeySequence('F9'), self.main_window)
-        self._logs_shortcut.setContext(QtCore.Qt.ApplicationShortcut)
-        self._logs_shortcut.activated.connect(
-            lambda: self._toggle_dock(self.ui.dockWidgetLogs))
+        # F2 / F6 / F9 : afficher ou masquer les panneaux « Système de
+        # fichiers », « Navigation » et « Journaux » (F3/F4 restent à la
+        # recherche). Ce sont les actions du menu Affichage > Fenêtres : la
+        # touche s'affiche en regard de chaque commande.
+        for dock, key in ((self.ui.dockWidgetFileSystem, 'F2'),
+                          (self.ui.dockWidgetNavPanel, 'F6'),
+                          (self.ui.dockWidgetLogs, 'F9')):
+            action = dock.toggleViewAction()
+            action.setShortcut(QtGui.QKeySequence(key))
+            action.setShortcutContext(QtCore.Qt.ApplicationShortcut)
         self._setup_status_bar()
         self.ui.tvFileSystem.activated.connect(self._on_tvFileSystem_activated)
         self.ui.tvFileSystem.setHeaderHidden(True)
@@ -214,13 +208,6 @@ class EditController(Controller):
             editor.cursorPositionChanged.connect(self._update_status_bar_labels)
             self._update_status_bar_labels()
             return editor
-
-    def _toggle_file_system(self):
-        self._toggle_dock(self.ui.dockWidgetFileSystem)
-
-    @staticmethod
-    def _toggle_dock(dock):
-        dock.setVisible(not dock.isVisible())
 
     def new_document(self):
         """
