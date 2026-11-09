@@ -191,10 +191,18 @@ class Settings(object):
         Returns the last used open/save path
         """
         path = system.from_portable(self._settings.value('lastUsedPath', ''))
-        if path and os.path.isdir(path):
+        if path and os.path.isdir(path) and not self._in_cache(path):
             return os.path.normpath(path)
         # jamais défini, ou dossier disparu (autre lecteur...) : Documents
         return system.documents_dir()
+
+    @staticmethod
+    def _in_cache(path):
+        """Vrai pour le dossier de cache des fichiers de cartes (ou dedans)."""
+        cache = os.path.normcase(os.path.abspath(
+            os.path.join(system.data_dir(), 'cache')))
+        path = os.path.normcase(os.path.abspath(path))
+        return path == cache or path.startswith(cache + os.sep)
 
     @last_path.setter
     def last_path(self, path):

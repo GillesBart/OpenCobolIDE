@@ -41,6 +41,31 @@ class FileController(Controller):
         # keep the list valid when the application folder is moved
         self.recent_files_manager.store_path = system.to_portable
         self.recent_files_manager.load_path = system.from_portable
+        # les fichiers d'une carte ne sont proposés que si la carte est là
+        original_get = self.recent_files_manager.get_recent_files
+
+        def available_recent_files():
+            micropython = getattr(self.app, 'micropython', None)
+            files = original_get()
+            if micropython is None:
+                return [f for f in files if not Settings._in_cache(f)]
+            return [f for f in files
+                    if micropython.board_files.recent_available(f)]
+        self.recent_files_manager.get_recent_files = available_recent_files
+
+        def open_file_in_list(file):
+            # l'ajout travaille sur la liste complète (existants seulement) :
+            # le filtre des cartes ne sert qu'à l'affichage, sinon les
+            # fichiers d'une carte absente seraient oubliés
+            manager = self.recent_files_manager
+            files = original_get()
+            if file in files:
+                files.remove(file)
+            files.insert(0, file)
+            del files[manager.max_recent_files:]
+            manager.set_value('list', files)
+            manager.updated.emit()
+        self.recent_files_manager.open_file = open_file_in_list
         self.menu_recents = widgets.MenuRecentFiles(
             self.ui.menuFile, title='Recents',
             recent_files_manager=self.recent_files_manager,
@@ -140,7 +165,8 @@ class FileController(Controller):
         self.app.edit.add_editor(path)
         self.app.view.show_edit_page()
         self.app.file.recent_files_manager.open_file(path)
-        Settings().last_path = path
+        if not Settings._in_cache(path):
+            Settings().last_path = path
 
     def save_current(self):
         editor = self.ui.tabWidgetEditors.current_widget()

@@ -241,6 +241,8 @@ class BoardFilesPanel(QtCore.QObject):
         self._timer.setInterval(3000)
         self._timer.timeout.connect(self._poll)
         self._timer.start()
+        self._purge_loose_cache()
+        QtCore.QTimer.singleShot(300, self._poll)     # première vérification
         self._ports_seen = None     # (heure, liste des cartes branchées)
         #: cartes branchées (None : pas encore vérifié) et compteur d'absences
         self._connected = None
@@ -325,8 +327,37 @@ class BoardFilesPanel(QtCore.QObject):
             return
         if self._interpreter is None and \
                 self.controller.quiet_interpreter() is None:
-            return          # mpremote pas prêt : on ne dérange pas l'utilisateur
+            # mpremote pas prêt : aucune carte n'est utilisable, donc aucun
+            # fichier de carte ne doit rester ouvrable
+            if self._connected is None:
+                self._update_connected(set())
+            return
         self._run(['connect', 'list'], self._polled, raw=True)
+
+    def _purge_loose_cache(self):
+        """
+        Efface ce qui traîne à la racine du cache (anciennes versions : fichiers
+        sans dossier de carte), qui ne se rattache à aucune carte.
+        """
+        try:
+            for name in os.listdir(self.cache_dir()):
+                path = os.path.join(self.cache_dir(), name)
+                if os.path.isfile(path):
+                    os.remove(path)
+        except OSError:
+            pass
+
+    def recent_available(self, path):
+        """
+        Vrai si ``path`` peut figurer dans les fichiers récents : un fichier
+        ordinaire qui existe, ou un fichier de carte dont la carte est là.
+        """
+        info = self.split_cache_path(path)
+        if info is not None:
+            return self._connected is not None and info[0] in self._connected
+        if self.is_board_file(path) or Settings._in_cache(path):
+            return False        # reste du cache sans carte
+        return os.path.exists(path)
 
     def _cache_boards(self):
         try:
