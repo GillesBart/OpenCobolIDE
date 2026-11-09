@@ -199,10 +199,14 @@ class Settings(object):
     @staticmethod
     def _in_cache(path):
         """Vrai pour le dossier de cache des fichiers de cartes (ou dedans)."""
-        cache = os.path.normcase(os.path.abspath(
-            os.path.join(system.data_dir(), 'cache')))
         path = os.path.normcase(os.path.abspath(path))
-        return path == cache or path.startswith(cache + os.sep)
+        # dossier temporaire actuel, et ancien emplacement (data/cache)
+        for cache in (system.board_cache_dir(),
+                      os.path.join(system.data_dir(), 'cache')):
+            cache = os.path.normcase(os.path.abspath(cache))
+            if path == cache or path.startswith(cache + os.sep):
+                return True
+        return False
 
     @last_path.setter
     def last_path(self, path):

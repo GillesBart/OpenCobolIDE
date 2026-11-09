@@ -119,13 +119,11 @@ def _candidate_roots():
     return roots
 
 
-def find_circuitpython_drive(board, roots=None):
+def circuitpython_drives(roots=None):
     """
-    Cherche le lecteur USB (CIRCUITPY) de la carte ``board`` : le PC l'a monté,
-    et un programme de la carte n'a alors plus le droit d'y écrire. Le fichier
-    boot_out.txt du lecteur contient « UID:<numéro de série> ».
-
-    :return: la racine du lecteur, ou None
+    Les lecteurs USB de cartes CircuitPython montés par le PC : liste de
+    (racine, UID). Le fichier boot_out.txt du lecteur contient « UID:<numéro
+    de série> », le même numéro que celui du port série de la carte.
     """
     found = []
     for root in (_candidate_roots() if roots is None else roots):
@@ -139,11 +137,23 @@ def find_circuitpython_drive(board, roots=None):
             continue
         match = re.search(r'UID:([0-9A-Fa-f]+)', text)
         found.append((root, match.group(1).upper() if match else None))
-    for root, uid in found:
-        if uid is not None and uid == (board or '').upper():
+    return found
+
+
+def find_circuitpython_drive(board, roots=None):
+    """
+    Le lecteur USB (CIRCUITPY) de la carte ``board``, ou None.
+
+    Quand le PC l'a monté, les fichiers de la carte sont de vrais fichiers
+    du PC : l'IDE les ouvre et les enregistre directement, sans passer par le
+    port série (et un programme de la carte n'a de toute façon plus le droit
+    d'y écrire).
+    """
+    if not board:
+        return None
+    for root, uid in circuitpython_drives(roots):
+        if uid is not None and uid == board.upper():
             return root
-    if len(found) == 1 and found[0][1] is None:
-        return found[0][0]      # ancienne version, sans UID : un seul lecteur
     return None
 
 
@@ -241,6 +251,9 @@ class BoardFilesPanel(QtCore.QObject):
         self._timer.setInterval(3000)
         self._timer.timeout.connect(self._poll)
         self._timer.start()
+        # ancien emplacement du cache (data/cache/board) : plus utilisé
+        shutil.rmtree(os.path.join(system.data_dir(), 'cache', 'board'),
+                      ignore_errors=True)
         self._purge_loose_cache()
         QtCore.QTimer.singleShot(300, self._poll)     # première vérification
         self._ports_seen = None     # (heure, liste des cartes branchées)
@@ -526,6 +539,16 @@ class BoardFilesPanel(QtCore.QObject):
                 QtWidgets.QMessageBox.No) != QtWidgets.QMessageBox.Yes:
             return
         board = self._shown_id or self.board_id()
+        drive = self.drive_of(board)
+        if drive:
+            target = self.drive_path(drive, remote)
+            try:
+                os.rmdir(target) if is_dir else os.remove(target)
+            except OSError as e:
+                self._error(tr('Delete'), str(e))
+                return
+            self._deleted(True, '', remote, is_dir, board, item.parent())
+            return
         code = (DELETE_DIR_CODE if is_dir else DELETE_FILE_CODE) % remote
         self._run(['exec', code],
                   lambda ok, out, err: self._deleted(
@@ -601,6 +624,20 @@ class BoardFilesPanel(QtCore.QObject):
                 title, tr('The name cannot contain a slash or a backslash'))
             return
         remote = join_remote(folder.data(0, ROLE_PATH), name)
+        drive = self.drive_of(self._shown_id or self.board_id())
+        if drive:
+            target = self.drive_path(drive, remote)
+            try:
+                if is_dir:
+                    os.makedirs(target)
+                else:
+                    os.makedirs(os.path.dirname(target), exist_ok=True)
+                    open(target, 'xb').close()      # 'x' : pas d'écrasement
+            except OSError as e:
+                self._error(title, str(e))
+                return
+            self._created(True, '', folder, remote, is_dir, title)
+            return
         code = ("import os\nos.mkdir(%r)\n" if is_dir
                 else "open(%r, 'w').close()\n") % remote
         self._run(['exec', code], lambda ok, out, err: self._created(
@@ -628,10 +665,48 @@ class BoardFilesPanel(QtCore.QObject):
             item.setExpanded(True)      # déclenche le chargement
 
     # ------------------------------------------------------------- actions
+    # ------------------------------------------- carte avec lecteur USB
+    def drive_of(self, board):
+        """Racine du lecteur USB de la carte (CircuitPython monté), ou None."""
+        return find_circuitpython_drive(board)
+
+    @staticmethod
+    def drive_path(drive, remote):
+        return os.path.join(drive, *[p for p in remote.split('/') if p])
+
+    def is_drive_file(self, path):
+        """Vrai si ``path`` est un fichier d'un lecteur de carte CircuitPython."""
+        path = os.path.normcase(os.path.abspath(path))
+        for root, _ in circuitpython_drives():
+            root = os.path.normcase(os.path.abspath(root)).rstrip(os.sep)
+            if path.startswith(root + os.sep):
+                return True
+        return False
+
+    def _list_drive(self, item, drive):
+        """Contenu d'un dossier lu directement sur le lecteur."""
+        target = self.drive_path(drive, item.data(0, ROLE_PATH))
+        entries = []
+        try:
+            with os.scandir(target) as it:
+                for entry in it:
+                    is_dir = entry.is_dir()
+                    size = 0 if is_dir else entry.stat().st_size
+                    entries.append((is_dir, size, entry.name))
+        except OSError as e:
+            self._listing(item, False, '', str(e))
+            return
+        entries.sort(key=lambda e: (not e[0], e[2].lower()))
+        self._fill(item, entries)
+
     def _on_expanded(self, item):
         if item.data(0, ROLE_DIR) and item.data(0, ROLE_STATE) is None:
             item.setData(0, ROLE_STATE, 'loading')
             folder = item.data(0, ROLE_PATH)
+            drive = self.drive_of(self._shown_id)
+            if drive:
+                self._list_drive(item, drive)
+                return
             self._run(['exec', LIST_DIR_CODE % folder],
                       lambda ok, out, err: self._listing(item, ok, out, err))
 
@@ -647,9 +722,16 @@ class BoardFilesPanel(QtCore.QObject):
             # fichier » restent possibles par le clic droit)
             self._error(tr('Cannot read the board'), err or out)
             return
+        self._fill(item, parse_listing(out))
+
+    def _fill(self, item, entries):
+        try:
+            item.takeChildren()
+        except RuntimeError:
+            return
         item.setData(0, ROLE_STATE, 'loaded')
         folder = item.data(0, ROLE_PATH)
-        for is_dir, size, name in parse_listing(out):
+        for is_dir, size, name in entries:
             item.addChild(self._new_item(
                 name, is_dir, join_remote(folder, name), size))
 
@@ -663,7 +745,7 @@ class BoardFilesPanel(QtCore.QObject):
 
     @staticmethod
     def cache_dir():
-        return os.path.join(system.data_dir(), 'cache', 'board')
+        return system.board_cache_dir()
 
     @staticmethod
     def board_id():
@@ -798,6 +880,13 @@ class BoardFilesPanel(QtCore.QObject):
             lambda board, port: self._open_remote(remote, board, port))
 
     def _open_remote(self, remote, board, port):
+        drive = self.drive_of(board)
+        if drive:
+            # lecteur monté : c'est un vrai fichier du PC, ouvert tel quel
+            path = self.drive_path(drive, remote)
+            if os.path.isfile(path):
+                self.app.file.open_file(path)
+            return
         local = self.local_path(remote, board)
         key = os.path.normcase(os.path.abspath(local))
         for editor in self._ui.tabWidgetEditors.widgets(include_clones=True):
@@ -949,9 +1038,33 @@ class BoardFilesPanel(QtCore.QObject):
             if remote == '/' or chr(92) in remote:
                 self._error(tr('Save on the board'), tr('Invalid path.'))
                 return
+            drive = self.drive_of(board)
+            if drive:
+                self._save_as_on_drive(editor, remote, drive)
+                return
             self._run(['exec', CHECK_PATH_CODE % remote],
                       lambda ok, out, err: self._prepared(
                           ok, out, err, editor, remote, board), port=port)
+
+    def _save_as_on_drive(self, editor, remote, drive):
+        """Enregistre directement sur le lecteur de la carte."""
+        target = self.drive_path(drive, remote)
+        if os.path.exists(target) and not self._confirm_replace(remote):
+            return
+        try:
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            editor.file.save(target, encoding=editor.file.encoding or 'utf-8')
+        except (OSError, UnicodeError) as e:
+            self._error(tr('Save on the board'), str(e))
+            return
+        self._retitle(editor)
+        self.app.file.recent_files_manager.open_file(target)
+
+    def _retitle(self, editor):
+        tabs = editor.parent_tab_widget
+        tabs.setTabText(tabs.indexOf(editor), editor.file.name)
+        self.controller.main_window.setWindowTitle(
+            '%s - %s' % (editor.file.name, self.app.title))
 
     def _prepared(self, ok, out, err, editor, remote, board):
         if not ok:
@@ -975,10 +1088,7 @@ class BoardFilesPanel(QtCore.QObject):
             self._error(tr('Save on the board'), str(e))
             return
         editor._board_synced = None     # ajusté par l'envoi
-        tabs = editor.parent_tab_widget
-        tabs.setTabText(tabs.indexOf(editor), editor.file.name)
-        self.controller.main_window.setWindowTitle(
-            '%s - %s' % (editor.file.name, self.app.title))
+        self._retitle(editor)
 
     def _not_sent_run(self, editor):
         self._error(tr('Cannot save the file on the board'),
@@ -1159,12 +1269,20 @@ class BoardFilesPanel(QtCore.QObject):
     def shutdown(self):
         """À la fermeture de l'IDE : plus de commande en attente."""
         self._timer.stop()
+        # les envois en cours doivent aboutir avant l'effacement du cache
+        deadline = time.monotonic() + 5
+        while (self._pending > 0 or self._job is not None) and \
+                time.monotonic() < deadline:
+            QtWidgets.QApplication.processEvents()
+            time.sleep(0.02)
         self._queue.clear()
         job = self._job
         if job is not None:
             if not job.wait(3000):
                 job.terminate()
                 job.wait(500)
+        # les copies de travail ne survivent pas à la session
+        shutil.rmtree(self.cache_dir(), ignore_errors=True)
 
     def _run(self, args, callback, port=None, raw=False):
         """

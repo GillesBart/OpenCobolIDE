@@ -169,6 +169,21 @@ def documents_dir():
     return os.path.expanduser('~')
 
 
+def board_cache_dir():
+    """
+    Copies de travail des fichiers des cartes (MicroPython...) : dossier
+    temporaire du système, propre à l'utilisateur, effacé à la fermeture.
+    """
+    import getpass
+    import tempfile
+    try:
+        user = getpass.getuser()
+    except Exception:
+        user = 'user'
+    return os.path.join(tempfile.gettempdir(),
+                        'OpenCobolIDE-boards-%s' % user)
+
+
 def data_dir():
     """
     Folder holding everything the IDE writes (settings .ini, cache, logs).
