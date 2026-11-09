@@ -201,7 +201,7 @@ class Settings(object):
         """Vrai pour le dossier de cache des fichiers de cartes (ou dedans)."""
         path = os.path.normcase(os.path.abspath(path))
         # dossier temporaire actuel, et ancien emplacement (data/cache)
-        for cache in (system.board_cache_dir(),
+        for cache in (system.board_cache_base(),
                       os.path.join(system.data_dir(), 'cache')):
             cache = os.path.normcase(os.path.abspath(cache))
             if path == cache or path.startswith(cache + os.sep):

@@ -169,10 +169,11 @@ def documents_dir():
     return os.path.expanduser('~')
 
 
-def board_cache_dir():
+def board_cache_base():
     """
-    Copies de travail des fichiers des cartes (MicroPython...) : dossier
-    temporaire du système, propre à l'utilisateur, effacé à la fermeture.
+    Dossier temporaire (propre à l'utilisateur) qui contient les copies de
+    travail des fichiers des cartes MicroPython : un sous-dossier par
+    instance de l'IDE (numéro du processus).
     """
     import getpass
     import tempfile
@@ -182,6 +183,59 @@ def board_cache_dir():
         user = 'user'
     return os.path.join(tempfile.gettempdir(),
                         'OpenCobolIDE-boards-%s' % user)
+
+
+def board_cache_dir():
+    """Copies de travail de CETTE instance : effacées à la fermeture."""
+    return os.path.join(board_cache_base(), str(os.getpid()))
+
+
+def _process_alive(pid):
+    try:
+        if sys.platform == 'win32':
+            import ctypes
+            kernel = ctypes.windll.kernel32
+            handle = kernel.OpenProcess(0x1000, False, pid)  # QUERY_LIMITED
+            if not handle:
+                return False
+            try:
+                code = ctypes.c_ulong()
+                kernel.GetExitCodeProcess(handle, ctypes.byref(code))
+                return code.value == 259                     # STILL_ACTIVE
+            finally:
+                kernel.CloseHandle(handle)
+        os.kill(pid, 0)
+        return True
+    except PermissionError:
+        return True         # le processus existe (autre utilisateur)
+    except (OSError, ValueError):
+        return False
+
+
+def clean_stale_board_caches():
+    """
+    Au démarrage : efface les copies de travail laissées par une session
+    interrompue (plantage, arrêt brutal), et celles des anciennes versions.
+    Les dossiers d'une autre instance de l'IDE encore ouverte sont gardés.
+    """
+    import shutil
+    base = board_cache_base()
+    try:
+        entries = os.listdir(base)
+    except OSError:
+        return
+    for name in entries:
+        path = os.path.join(base, name)
+        if name.isdigit() and int(name) != os.getpid() and \
+                _process_alive(int(name)):
+            continue
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+        else:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
 
 
 def data_dir():

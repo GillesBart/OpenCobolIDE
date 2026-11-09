@@ -254,7 +254,8 @@ class BoardFilesPanel(QtCore.QObject):
         # ancien emplacement du cache (data/cache/board) : plus utilisé
         shutil.rmtree(os.path.join(system.data_dir(), 'cache', 'board'),
                       ignore_errors=True)
-        self._purge_loose_cache()
+        # copies de travail laissées par une session interrompue
+        system.clean_stale_board_caches()
         QtCore.QTimer.singleShot(300, self._poll)     # première vérification
         self._ports_seen = None     # (heure, liste des cartes branchées)
         #: cartes branchées (None : pas encore vérifié) et compteur d'absences
@@ -346,19 +347,6 @@ class BoardFilesPanel(QtCore.QObject):
                 self._update_connected(set())
             return
         self._run(['connect', 'list'], self._polled, raw=True)
-
-    def _purge_loose_cache(self):
-        """
-        Efface ce qui traîne à la racine du cache (anciennes versions : fichiers
-        sans dossier de carte), qui ne se rattache à aucune carte.
-        """
-        try:
-            for name in os.listdir(self.cache_dir()):
-                path = os.path.join(self.cache_dir(), name)
-                if os.path.isfile(path):
-                    os.remove(path)
-        except OSError:
-            pass
 
     def recent_available(self, path):
         """
