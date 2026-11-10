@@ -445,6 +445,7 @@ class BoardFilesPanel(QtCore.QObject):
             {safe_board_id(serial or port) for port, _, serial in ports})
         if not self.button.isChecked():
             return
+        self._sync_drive_tree()
         found = self._resolve_board(ports)
         current = found[0] if found else None
         if current == self._shown_id:
@@ -686,6 +687,50 @@ class BoardFilesPanel(QtCore.QObject):
             return
         entries.sort(key=lambda e: (not e[0], e[2].lower()))
         self._fill(item, entries)
+
+    def _sync_drive_tree(self):
+        """
+        Carte avec lecteur : met la liste à jour quand des fichiers ont été
+        ajoutés ou supprimés (« Enregistrer sous », explorateur, Thonny...), en
+        gardant les dossiers dépliés.
+        """
+        root = self.tree.topLevelItem(0)
+        drive = self.drive_of(self._shown_id)
+        if root is None or not drive or root.data(0, ROLE_STATE) != 'loaded':
+            return
+        self._sync_item(root, drive)
+
+    def _sync_item(self, item, drive):
+        target = self.drive_path(drive, item.data(0, ROLE_PATH))
+        try:
+            with os.scandir(target) as it:
+                entries = [(e.is_dir(), 0 if e.is_dir() else e.stat().st_size,
+                            e.name) for e in it]
+        except OSError:
+            return
+        existing = {item.child(i).text(0): item.child(i)
+                    for i in range(item.childCount())}
+        names = {name for _, _, name in entries}
+        folder = item.data(0, ROLE_PATH)
+        added = [(d, sz, n) for d, sz, n in entries if n not in existing]
+        removed = [n for n in existing if n not in names]
+        if added or removed:
+            expanded = {c.text(0) for c in existing.values() if c.isExpanded()}
+            kept = [c for c in item.takeChildren() if c.text(0) in names]
+            for is_dir, size, name in added:
+                kept.append(self._new_item(
+                    name, is_dir, join_remote(folder, name), size))
+            kept.sort(key=lambda c: (not c.data(0, ROLE_DIR),
+                                     c.text(0).lower()))
+            item.addChildren(kept)
+            for child in kept:         # (retirer un élément ferme les dossiers)
+                if child.text(0) in expanded:
+                    child.setExpanded(True)
+        for i in range(item.childCount()):
+            child = item.child(i)
+            if child.data(0, ROLE_DIR) and child.isExpanded() and \
+                    child.data(0, ROLE_STATE) == 'loaded':
+                self._sync_item(child, drive)
 
     def _on_expanded(self, item):
         if item.data(0, ROLE_DIR) and item.data(0, ROLE_STATE) is None:
@@ -1047,6 +1092,7 @@ class BoardFilesPanel(QtCore.QObject):
             return
         self._retitle(editor)
         self.app.file.recent_files_manager.open_file(target)
+        self._sync_drive_tree()
 
     def _retitle(self, editor):
         tabs = editor.parent_tab_widget
