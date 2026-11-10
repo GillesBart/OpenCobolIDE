@@ -1029,9 +1029,7 @@ class BoardFilesPanel(QtCore.QObject):
 
         :param save_as_on_pc: fonction qui fait l'enregistrement habituel
         """
-        from pyqode.cobol.widgets import CobolCodeEdit
-        if isinstance(editor, CobolCodeEdit) or \
-                self.controller.quiet_interpreter() is None:
+        if self.controller.quiet_interpreter() is None:
             save_as_on_pc()
             return
         self._detect_board(
@@ -1410,7 +1408,12 @@ class BoardFilesPanel(QtCore.QObject):
             return
         key = Settings().python_interpreter
         if self._interpreter is None or key != self._interpreter_key:
-            self._interpreter = self.controller._prepare()
+            interpreter = self.controller.background_interpreter()
+            if interpreter is None and \
+                    not self.controller.ui.consoleOutput.is_running:
+                # mpremote absent : propose de l'installer (console libre)
+                interpreter = self.controller._prepare()
+            self._interpreter = interpreter
             self._interpreter_key = key
             if not self._interpreter:
                 self._queue.clear()

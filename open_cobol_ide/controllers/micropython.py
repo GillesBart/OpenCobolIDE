@@ -108,17 +108,22 @@ class MicroPythonController(Controller):
         except Exception:
             return False
 
-    def quiet_interpreter(self):
+    def background_interpreter(self):
         """
         L'interpréteur à utiliser pour mpremote s'il est prêt, sans rien
-        demander à l'utilisateur (None sinon, ou si la console est occupée).
+        demander à l'utilisateur et même si la console est occupée (None
+        sinon). Pour les accès à la carte en arrière-plan.
         """
-        if self.ui.consoleOutput.is_running:
-            return None
         interpreter = find_interpreter()
         if interpreter and self._has_mpremote(interpreter):
             return interpreter
         return None
+
+    def quiet_interpreter(self):
+        """Comme background_interpreter, mais None si la console est occupée."""
+        if self.ui.consoleOutput.is_running:
+            return None
+        return self.background_interpreter()
 
     def _prepare(self):
         """
@@ -197,6 +202,9 @@ class MicroPythonController(Controller):
             ['exec', 'pass'], self._interrupted))
 
     def _interrupted(self, ok, out, err):
+        # (STOP a déjà remis « programme en cours » à zéro : le signal de fin
+        # du processus n'enclenche plus la reprise, on la lance ici)
+        self.board_files.resume()
         if not ok:
             self._info(tr('Stop'), err or out)
 
