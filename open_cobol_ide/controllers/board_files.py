@@ -300,8 +300,11 @@ class BoardFilesPanel(QtCore.QObject):
         self.tree.setVisible(checked)
         if checked:
             self.refresh()          # toujours relire : la carte a pu changer
-        elif ui.tvFileSystem.root_path is None:
-            ui.tvFileSystem.set_root_path(Settings().last_path)
+        else:
+            root = ui.tvFileSystem.root_path
+            if root is None or self.on_board_storage(root):
+                # l'arborescence du PC montrait un dossier de la carte
+                ui.tvFileSystem.set_root_path(self.pc_root())
 
     def reset(self):
         """La carte (ou le port) a changé : on oublie l'arborescence."""
@@ -664,13 +667,33 @@ class BoardFilesPanel(QtCore.QObject):
         return os.path.join(drive, *[p for p in remote.split('/') if p])
 
     def is_drive_file(self, path):
-        """Vrai si ``path`` est un fichier d'un lecteur de carte CircuitPython."""
+        """
+        Vrai si ``path`` est sur le lecteur d'une carte CircuitPython (fichier,
+        dossier, ou le lecteur lui-même).
+        """
         path = os.path.normcase(os.path.abspath(path))
         for root, _ in circuitpython_drives():
             root = os.path.normcase(os.path.abspath(root)).rstrip(os.sep)
-            if path.startswith(root + os.sep):
+            if path == root or path.startswith(root + os.sep):
                 return True
         return False
+
+    def on_board_storage(self, path):
+        """Fichier ou dossier d'une carte (copie de travail ou lecteur) ?"""
+        return bool(path) and (self.is_board_file(path) or
+                               Settings._in_cache(path) or
+                               self.is_drive_file(path))
+
+    def pc_root(self):
+        """
+        Dossier que l'arborescence du PC doit montrer par défaut : le dernier
+        dossier utilisé, mais jamais celui d'une carte (qui a son propre
+        affichage, bouton « Carte »).
+        """
+        path = Settings().last_path
+        if self.on_board_storage(path):
+            path = system.documents_dir()
+        return os.path.normpath(path)
 
     def _list_drive(self, item, drive):
         """Contenu d'un dossier lu directement sur le lecteur."""

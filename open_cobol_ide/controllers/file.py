@@ -165,7 +165,8 @@ class FileController(Controller):
         self.app.edit.add_editor(path)
         self.app.view.show_edit_page()
         self.app.file.recent_files_manager.open_file(path)
-        if not Settings._in_cache(path):
+        if not (micropython is not None and
+                micropython.board_files.on_board_storage(path)):
             Settings().last_path = path
 
     def save_current(self):

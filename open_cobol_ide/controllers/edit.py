@@ -209,6 +209,12 @@ class EditController(Controller):
             self._update_status_bar_labels()
             return editor
 
+    def _pc_root(self):
+        micropython = getattr(self.app, 'micropython', None)
+        if micropython is not None:
+            return micropython.board_files.pc_root()
+        return Settings().last_path
+
     def new_document(self):
         """
         Ouvre un onglet vide « nouveau.txt », sans créer de fichier : le nom
@@ -224,7 +230,7 @@ class EditController(Controller):
         if not self.ui.btFSLock.isChecked():
             # arborescence du PC : dernier dossier utilisé (sans fichier ouvert,
             # elle n'aurait sinon aucune racine)
-            self.ui.tvFileSystem.set_root_path(Settings().last_path)
+            self.ui.tvFileSystem.set_root_path(self._pc_root())
         name = 'nouveau.txt'
         editor.setDocumentTitle(name)
         tabs_widget = editor.parent_tab_widget
@@ -263,15 +269,15 @@ class EditController(Controller):
             # l'arborescence du PC vers le dossier de cache)
             micropython = getattr(self.app, 'micropython', None)
             on_board = micropython is not None and \
-                micropython.board_files.is_board_file(editor.file.path)
+                micropython.board_files.on_board_storage(editor.file.path)
             if not self.ui.btFSLock.isChecked() and not on_board:
                 path = editor.file.path or ''
                 # un document pas encore enregistré (« nouveau.txt ») n'a pas
                 # de dossier : on garde le dernier dossier utilisé
                 new_root = os.path.dirname(path) if os.path.isabs(path) \
-                    else Settings().last_path
+                    else self._pc_root()
                 if not os.path.isdir(new_root):
-                    new_root = Settings().last_path
+                    new_root = self._pc_root()
                 new_root = os.path.normpath(new_root)
                 if new_root != self.ui.tvFileSystem.root_path:
                     self.ui.tvFileSystem.set_root_path(new_root)
