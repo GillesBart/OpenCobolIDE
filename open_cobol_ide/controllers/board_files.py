@@ -258,6 +258,7 @@ class BoardFilesPanel(QtCore.QObject):
         system.clean_stale_board_caches()
         QtCore.QTimer.singleShot(300, self._poll)     # première vérification
         self._ports_seen = None     # (heure, liste des cartes branchées)
+        self._reload_after_run = False
         #: cartes branchées (None : pas encore vérifié) et compteur d'absences
         self._connected = None
         self._absent = {}
@@ -711,6 +712,17 @@ class BoardFilesPanel(QtCore.QObject):
         entries.sort(key=lambda e: (not e[0], e[2].lower()))
         self._fill(item, entries)
 
+    def _show_busy(self, item):
+        """La carte exécute un programme : on le dit au lieu d'afficher une erreur."""
+        item.takeChildren()
+        note = QtWidgets.QTreeWidgetItem(
+            [tr('A program is running on the board (STOP to read its files)')])
+        note.setFlags(QtCore.Qt.NoItemFlags)
+        note.setData(0, ROLE_PATH, None)
+        item.addChild(note)
+        item.setData(0, ROLE_STATE, None)       # relu quand le programme s'arrête
+        self._reload_after_run = True
+
     def _sync_drive_tree(self):
         """
         Carte avec lecteur : met la liste à jour quand des fichiers ont été
@@ -762,6 +774,9 @@ class BoardFilesPanel(QtCore.QObject):
             drive = self.drive_of(self._shown_id)
             if drive:
                 self._list_drive(item, drive)
+                return
+            if self._board_busy():
+                self._show_busy(item)
                 return
             self._run(['exec', LIST_DIR_CODE % folder],
                       lambda ok, out, err: self._listing(item, ok, out, err))
@@ -1182,6 +1197,10 @@ class BoardFilesPanel(QtCore.QObject):
 
     def _upload(self, editor, path, remote, port, board, attempt=0,
                 created=False):
+        if self._board_busy() and attempt == 0 and not created:
+            # envoyé dès que le programme de la carte s'arrête
+            editor._upload_deferred = True
+            self._mark_unsaved(editor)
         def again():
             QtCore.QTimer.singleShot(
                 READ_ONLY_RETRY_DELAY,
@@ -1293,6 +1312,12 @@ class BoardFilesPanel(QtCore.QObject):
     def _uploaded(self, ok, message, remote, editor, board):
         if ok:
             editor._board_synced = board
+            if getattr(editor, '_upload_deferred', False):
+                editor._upload_deferred = False
+                try:
+                    editor.document().setModified(False)
+                except RuntimeError:
+                    pass
             if not self._after:
                 # (pas pendant une exécution : un seul accès à la carte)
                 self._refresh_remote_folder(remote)
@@ -1315,6 +1340,11 @@ class BoardFilesPanel(QtCore.QObject):
                 'explorer, or add these two lines to the board\'s boot.py '
                 '(the computer will then see the drive as read-only): '
                 'import storage / storage.remount("/", readonly=False)')
+        elif 'no device found' in message:
+            message += '\n\n' + tr(
+                'No board answers. It may be unplugged, busy (a program is '
+                'running on it, or another application such as Thonny uses '
+                'its port).')
         elif 'failed to access' in message:
             message += '\n\n' + tr(
                 'The board port cannot be opened. Another program (Thonny, a '
@@ -1351,8 +1381,32 @@ class BoardFilesPanel(QtCore.QObject):
         self._queue.append((args, callback, port, raw))
         self._next()
 
+    def _board_busy(self):
+        """Un programme lancé depuis l'IDE tourne sur la carte (port occupé)."""
+        return bool(getattr(self.controller, 'board_run_active', False))
+
+    def resume(self):
+        """Le programme de la carte est terminé : les accès en attente reprennent."""
+        QtCore.QTimer.singleShot(800, self._after_run)     # laisse le port se libérer
+
+    def _after_run(self):
+        if self._board_busy():
+            return
+        if self._reload_after_run:
+            self._reload_after_run = False
+            if self.button.isChecked():
+                self.refresh()
+        self._next()
+
     def _next(self):
         if self._job is not None or not self._queue:
+            return
+        # pendant l'exécution d'un programme sur la carte, seuls les accès qui
+        # n'ouvrent pas le port (liste des cartes) peuvent passer
+        busy = self._board_busy()
+        index = next((i for i, job in enumerate(self._queue)
+                      if job[3] or not busy), None)
+        if index is None:
             return
         key = Settings().python_interpreter
         if self._interpreter is None or key != self._interpreter_key:
@@ -1361,7 +1415,7 @@ class BoardFilesPanel(QtCore.QObject):
             if not self._interpreter:
                 self._queue.clear()
                 return
-        args, callback, port, raw = self._queue.pop(0)
+        args, callback, port, raw = self._queue.pop(index)
         if raw:
             command = [self._interpreter, '-u', '-m', 'mpremote'] + args
         else:

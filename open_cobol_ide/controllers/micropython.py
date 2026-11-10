@@ -176,6 +176,8 @@ class MicroPythonController(Controller):
     def _on_process_finished(self):
         was_on_board = self.board_run_active
         self.board_run_active = False
+        if was_on_board:
+            self.board_files.resume()       # accès à la carte en attente
         if was_on_board and Settings().micropython_reset:
             try:
                 tail = self.ui.consoleOutput.toPlainText()[-3000:]
