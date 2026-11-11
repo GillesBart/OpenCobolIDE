@@ -105,6 +105,10 @@ class EncodingPanel(Panel):
         self._deco = None
         self.ui.pushButtonRetry.clicked.connect(self._reload)
         self.ui.pushButtonEdit.clicked.connect(self._edit_anyway)
+        # « Modifier quand même » laisserait éditer un texte de remplacement
+        # (les premiers octets du fichier), pas son contenu : enregistrer
+        # détruirait le fichier. Le bouton n'est pas proposé.
+        self.ui.pushButtonEdit.hide()
         self.ui.pushButtonCancel.clicked.connect(self.cancel)
         self.hide()
 
@@ -191,6 +195,8 @@ class EncodingPanel(Panel):
     def cancel(self):
         if self.sender():
             self.editor.clear()
+            # l'éditeur vidé n'est pas une modification du fichier
+            self.editor.document().setModified(False)
         self.close_panel()
 
     def close_panel(self):

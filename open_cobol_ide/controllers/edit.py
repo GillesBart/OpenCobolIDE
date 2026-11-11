@@ -6,6 +6,7 @@ import logging
 import os
 import weakref
 from pyqode.core.api import TextHelper
+from pyqode.core.panels import EncodingPanel
 from pyqode.core.cache import Cache
 from pyqode.qt import QtCore, QtGui, QtWidgets
 from .base import Controller
@@ -192,6 +193,13 @@ class EditController(Controller):
                 fw.file_deleted.connect(self._on_file_deleted)
             editor.app = weakref.ref(self.app)
             update_editor_settings(editor)
+            # fichier illisible (encodage) puis « Annuler » : l'onglet se ferme
+            # sans rien enregistrer
+            try:
+                editor.panels.get(EncodingPanel).cancel_requested.connect(
+                    self._on_open_cancelled)
+            except KeyError:
+                pass
             # copie d'un fichier d'une carte MicroPython : renvoyée sur la
             # carte à chaque enregistrement
             micropython = getattr(self.app, 'micropython', None)
@@ -208,6 +216,16 @@ class EditController(Controller):
             editor.cursorPositionChanged.connect(self._update_status_bar_labels)
             self._update_status_bar_labels()
             return editor
+
+    def _on_open_cancelled(self, editor):
+        """
+        L'ouverture a échoué (caractères invalides) et l'utilisateur annule :
+        on ferme l'onglet, sans enregistrer, sans toucher au fichier.
+        """
+        path = editor.file.path
+        editor.document().setModified(False)
+        QtCore.QTimer.singleShot(
+            0, lambda: self.ui.tabWidgetEditors.close_document(path))
 
     def _pc_root(self):
         micropython = getattr(self.app, 'micropython', None)
