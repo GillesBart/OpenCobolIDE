@@ -67,7 +67,7 @@ class FileController(Controller):
             manager.updated.emit()
         self.recent_files_manager.open_file = open_file_in_list
         self.menu_recents = widgets.MenuRecentFiles(
-            self.ui.menuFile, title='Recents',
+            self.ui.menuFile, title=tr('Recents'),
             recent_files_manager=self.recent_files_manager,
             icon_provider=FileIconProvider())
         self.menu_recents.setIcon(QtGui.QIcon.fromTheme(

@@ -110,6 +110,7 @@
   "You are about to open a file using a UNC pathname.\n\nUNC pathnames are not fully supported by the IDE, some features such as the file explorer tree view will not work. Depending on the compiler you're using, this might also lead to some compilation errors.\n\nYou will have better results if you map your share as a network drive...\n\nDo you still want to continue opening this file?": "Vous êtes sur le point d’ouvrir un fichier via un chemin UNC.\n\nLes chemins UNC ne sont pas entièrement pris en charge par l’EDI : certaines fonctions, comme l’arborescence de l’explorateur de fichiers, ne fonctionneront pas. Selon le compilateur utilisé, cela peut aussi provoquer des erreurs de compilation.\n\nVous aurez de meilleurs résultats si vous associez votre partage à un lecteur réseau...\n\nVoulez-vous quand même ouvrir ce fichier ?",
   "Failed to save file": "Échec de l’enregistrement du fichier",
   "Failed to save file, permission error...": "Échec de l’enregistrement du fichier, erreur de permission...",
+  "Recents": "Récents",
   "Preferences imported": "Préférences importées",
   "Preferences successfully imported!": "Préférences importées avec succès !",
   "Preferences exported": "Préférences exportées",
