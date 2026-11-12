@@ -182,7 +182,7 @@ def board_cache_base():
     except Exception:
         user = 'user'
     return os.path.join(tempfile.gettempdir(),
-                        'OpenCobolIDE-boards-%s' % user)
+                        'CobraIDE-boards-%s' % user)
 
 
 def board_cache_dir():
@@ -251,10 +251,35 @@ def data_dir():
     return path
 
 
+#: nom du fichier de préférences (data/CobraIDE.ini)
+SETTINGS_NAME = 'CobraIDE'
+#: ancien nom (OpenCobolIDE 4.x) : repris une fois si CobraIDE.ini n'existe pas
+LEGACY_SETTINGS_NAME = 'OpenCobolIDE4'
+
+
+def _migrate_legacy_settings(name):
+    """
+    Au premier lancement de CobraIDE, copie data/OpenCobolIDE4.ini vers
+    data/CobraIDE.ini pour conserver préférences et fichiers récents.
+    L'ancien fichier n'est pas touché.
+    """
+    if name != SETTINGS_NAME:
+        return
+    new = os.path.join(data_dir(), SETTINGS_NAME + '.ini')
+    old = os.path.join(data_dir(), LEGACY_SETTINGS_NAME + '.ini')
+    if not os.path.exists(new) and os.path.isfile(old):
+        try:
+            import shutil
+            shutil.copyfile(old, new)
+        except OSError:
+            pass
+
+
 def make_settings(name):
     """
     Creates a QSettings backed by <app>/data/<name>.ini (never the registry).
     """
+    _migrate_legacy_settings(name)
     return QtCore.QSettings(os.path.join(data_dir(), name + '.ini'),
                             QtCore.QSettings.IniFormat)
 

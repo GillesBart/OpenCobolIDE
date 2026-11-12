@@ -18,7 +18,7 @@ class Settings(object):
     settings (thought getter/setter properties).
     """
     def __init__(self):
-        self._settings = system.make_settings('OpenCobolIDE4')
+        self._settings = system.make_settings(system.SETTINGS_NAME)
 
     def clear(self):
         """

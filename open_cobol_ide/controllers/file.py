@@ -36,8 +36,8 @@ class FileController(Controller):
     def __init__(self, app):
         super().__init__(app)
         self.recent_files_manager = widgets.RecentFilesManager(
-            'OpenCobolIDE', 'OpenCobolIDE4',
-            qsettings=system.make_settings('OpenCobolIDE4'))
+            'CobraIDE', system.SETTINGS_NAME,
+            qsettings=system.make_settings(system.SETTINGS_NAME))
         # keep the list valid when the application folder is moved
         self.recent_files_manager.store_path = system.to_portable
         self.recent_files_manager.load_path = system.from_portable

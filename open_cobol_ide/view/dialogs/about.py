@@ -42,6 +42,42 @@ class DlgAbout(QtWidgets.QDialog, dlg_about_ui.Ui_Dialog):
         'QDarkStyle'
     ]
 
+    def _add_cobraide_info(self):
+        """
+        Copyright, contributeur et origine de CobraIDE (dérivé d'OpenCobolIDE).
+        """
+        # texte principal : contributeur, dépôt, origine
+        extra = (
+            '<p>%s</p><p>%s</p><p>%s</p>' % (
+                tr('CobraIDE is maintained by Gilles Barthélemy, who '
+                   'contributed the portable mode, the Python, MicroPython '
+                   'and CircuitPython support, the board file manager and '
+                   'the French translation.'),
+                tr('CobraIDE is based on OpenCobolIDE 4.7.6 by Colin '
+                   'Duquesnoy and contributors, which is no longer '
+                   'maintained.'),
+                tr('Source code: %s') % (
+                    '<a href="https://github.com/GillesBart/OpenCobolIDE">'
+                    'github.com/GillesBart/OpenCobolIDE</a>')))
+        text = self.labelMain.text()
+        assert '</body>' in text
+        self.labelMain.setText(text.replace('</body>', extra + '</body>'))
+        self.labelMain.setOpenExternalLinks(True)
+        # copyright en bas de l'onglet
+        self.label_2.setText('\n'.join([
+            tr('Copyright (C) 2026 Gilles Barthélemy (CobraIDE)'),
+            tr('Copyright (C) 2013-2016 Colin Duquesnoy (OpenCobolIDE)')]))
+        # onglet Auteurs : CobraIDE en tête
+        cursor = self.textBrowser.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.Start)
+        cursor.insertHtml(
+            '<b>Gilles Barthélemy</b><br/>&nbsp;&nbsp;&nbsp;&nbsp;%s'
+            % tr('CobraIDE contributor (portable mode, Python, MicroPython '
+                 'and CircuitPython support, boards, French translation)'))
+        cursor.insertBlock()  # sépare de l'entrée suivante
+        cursor.insertBlock()
+        self.textBrowser.moveCursor(QtGui.QTextCursor.Start)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
@@ -52,6 +88,7 @@ class DlgAbout(QtWidgets.QDialog, dlg_about_ui.Ui_Dialog):
         self.tbwVersions.setHorizontalHeaderLabels([tr('Version')])
         self.tbwVersions.verticalHeader().setStretchLastSection(False)
         self.labelMain.setText(self.labelMain.text() % __version__)
+        self._add_cobraide_info()
         self.setMinimumWidth(640)
         self.setMinimumHeight(480)
         self.setWindowIcon(QtGui.QIcon.fromTheme(
