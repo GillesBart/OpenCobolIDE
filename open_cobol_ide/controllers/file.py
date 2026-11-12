@@ -217,8 +217,8 @@ class FileController(Controller):
         Quits the application, but contrarily asks the user first.
         """
         if QtWidgets.QMessageBox.question(
-                self.main_window, tr('Quit OpenCobolIDE?'),
-                tr('Are you sure you want to quit OpenCobolIDE?'),
+                self.main_window, tr('Quit CobraIDE?'),
+                tr('Are you sure you want to quit CobraIDE?'),
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                 QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             _logger().debug('quit action triggered')

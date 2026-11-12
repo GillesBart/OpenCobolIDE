@@ -465,8 +465,8 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "OpenCobolIDE"))
-        self.label_3.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Welcome to OpenCobolIDE</span></p><p align=\"center\">Click on <span style=\" font-weight:600; font-style:italic;\">New </span>or <span style=\" font-weight:600; font-style:italic;\">Open </span>to get started!</p></body></html>"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "CobraIDE"))
+        self.label_3.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Welcome to CobraIDE</span></p><p align=\"center\">Click on <span style=\" font-weight:600; font-style:italic;\">New </span>or <span style=\" font-weight:600; font-style:italic;\">Open </span>to get started!</p></body></html>"))
         self.btNewFile.setToolTip(_translate("MainWindow", "Create a new file"))
         self.btNewFile.setStatusTip(_translate("MainWindow", "Create a new file"))
         self.btNewFile.setText(_translate("MainWindow", "New file"))
@@ -524,9 +524,9 @@ class Ui_MainWindow(object):
         self.actionRun.setToolTip(_translate("MainWindow", "Run the current editor program"))
         self.actionRun.setStatusTip(_translate("MainWindow", "Run the current editor program"))
         self.actionRun.setShortcut(_translate("MainWindow", "F5"))
-        self.actionAbout.setText(_translate("MainWindow", "&About OpenCobolIDE"))
-        self.actionAbout.setToolTip(_translate("MainWindow", "About OpenCobolIDE"))
-        self.actionAbout.setStatusTip(_translate("MainWindow", "About OpenCobolIDE"))
+        self.actionAbout.setText(_translate("MainWindow", "&About CobraIDE"))
+        self.actionAbout.setToolTip(_translate("MainWindow", "About CobraIDE"))
+        self.actionAbout.setStatusTip(_translate("MainWindow", "About CobraIDE"))
         self.actionSave.setText(_translate("MainWindow", "&Save"))
         self.actionSave.setToolTip(_translate("MainWindow", "Save the current editor"))
         self.actionSave.setStatusTip(_translate("MainWindow", "Save the current editor"))

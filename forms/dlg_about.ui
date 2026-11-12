@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>About OpenCobolIDE</string>
+   <string>About CobraIDE</string>
   </property>
   <property name="windowIcon">
    <iconset resource="ide.qrc">
@@ -39,7 +39,7 @@
      <item>
       <widget class="QLabel" name="labelIcon">
        <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;:/ide-icons/rc/silex-64x64.png&quot;/&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;OpenCobolIDE&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;:/ide-icons/rc/silex-64x64.png&quot;/&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;CobraIDE&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
       </widget>
      </item>
@@ -76,8 +76,8 @@
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Noto Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;Version: &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;%s&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;OpenCobolIDE &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;is a simple and lightweight COBOL IDE based on &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;GnuCOBOL&lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt; (formely called OpenCobol) and &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;pyQode&lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;.&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;OpenCobolIDE is licensed under the &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;GPL v3&lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt; and is powered by open source softwares.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;CobraIDE &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;is a simple and lightweight IDE for COBOL, Python, MicroPython and CircuitPython, derived from OpenCobolIDE and based on &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;GnuCOBOL&lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt; (formely called OpenCobol) and &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;pyQode&lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;CobraIDE is licensed under the &lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell'; font-weight:600;&quot;&gt;GPL v3&lt;/span&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt; and is powered by open source softwares.&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Cantarell';&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
          <property name="wordWrap">
@@ -825,7 +825,7 @@ p, li { white-space: pre-wrap; }
 &lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;  If the program does terminal interaction, make it output a short&lt;/span&gt;&lt;/p&gt;
 &lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;notice like this when it starts in an interactive mode:&lt;/span&gt;&lt;/p&gt;
 &lt;p align=&quot;center&quot; style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Cantarell';&quot;&gt;&lt;br /&gt;&lt;/p&gt;
-&lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;    OpenCobolIDE  Copyright (C) 2013  Colin &lt;/span&gt;&lt;/p&gt;
+&lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;    CobraIDE  Copyright (C) 2013  Colin &lt;/span&gt;&lt;/p&gt;
 &lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;    This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.&lt;/span&gt;&lt;/p&gt;
 &lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;    This is free software, and you are welcome to redistribute it&lt;/span&gt;&lt;/p&gt;
 &lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Cantarell';&quot;&gt;    under certain conditions; type `show c' for details.&lt;/span&gt;&lt;/p&gt;

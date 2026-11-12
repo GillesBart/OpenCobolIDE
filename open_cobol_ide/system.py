@@ -342,7 +342,7 @@ def get_system_infos():
         system_info = 'Mac OS X %s' % platform.mac_ver()[0]
     return '\n'.join([
         'Operating System: %s' % system_info,
-        'OpenCobolIDE: %s' % __version__,
+        'CobraIDE: %s' % __version__,
         'GnuCOBOL: %s' % GnuCobolCompiler().get_version(
             include_all=False),
         'Python: %s (%dbits)' % (platform.python_version(), 64

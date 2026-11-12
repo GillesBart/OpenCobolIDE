@@ -1,7 +1,9 @@
-OpenCobolIDE
-------------
+CobraIDE
+--------
 
-**OpenCobolIDE is no longer maintained**, see https://github.com/OpenCobolIDE/OpenCobolIDE/issues/439
+CobraIDE is a portable IDE for COBOL (GnuCOBOL), Python, MicroPython and
+CircuitPython, derived from OpenCobolIDE (https://github.com/OpenCobolIDE/OpenCobolIDE,
+no longer maintained). The Python package is still called ``open_cobol_ide``.
 
 Features:
 ---------

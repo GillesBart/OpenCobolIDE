@@ -24,8 +24,8 @@ windows = sys.platform == 'win32'
 osx = sys.platform == 'darwin'
 
 app_script = 'OpenCobolIDE.pyw'
-app_name = 'OpenCobolIDE'
-app_exe = 'OpenCobolIDE.exe' if windows else 'OpenCobolIDE'
+app_name = 'CobraIDE'
+app_exe = 'CobraIDE.exe' if windows else 'CobraIDE'
 
 # cobol backend
 srv_script = backend.__file__
@@ -116,7 +116,7 @@ if windows:
     if os.path.exists(r'c:\DigiCertUtil.exe'):
         print('Signing our binaries\n'
               '#################################################################')
-        for executable in ['OpenCobolIDE.exe', 'cobol-backend.exe',
+        for executable in ['CobraIDE.exe', 'cobol-backend.exe',
                            'core-backend.exe', 'pyqode-console.exe']:
             path = os.path.join(build_dir, executable)
             os.system(r'c:\DigiCertUtil.exe sign /noInput %s' % path)

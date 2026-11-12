@@ -69,7 +69,7 @@ class Application(QtCore.QObject):
         else:
             files = []
         _logger().info('files to open: %r' % files)
-        self.name = 'OpenCobolIDE'
+        self.name = 'CobraIDE'
         self.version = __version__
         self.title = '%s %s' % (self.name, self.version)
 
@@ -201,7 +201,7 @@ class Application(QtCore.QObject):
 
         # show runtime env
         if args.runtime_env:
-            print('OpenCobolIDE %s' % __version__)
+            print('CobraIDE %s' % __version__)
             for k, v in sorted(DlgAbout.get_runtime_env().items(),
                                key=lambda x: x[0]):
                 print('%s %s' % (k, v))

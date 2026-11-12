@@ -7,16 +7,16 @@
    "Version : "
   ],
   [
-   "is a simple and lightweight COBOL IDE based on ",
-   "est un EDI COBOL simple et léger basé sur "
+   "is a simple and lightweight IDE for COBOL, Python, MicroPython and CircuitPython, derived from OpenCobolIDE and based on ",
+   "est un EDI simple et léger pour COBOL, Python, MicroPython et CircuitPython, dérivé d’OpenCobolIDE et basé sur "
   ],
   [
    " (formely called OpenCobol) and ",
    " (anciennement appelé OpenCobol) et "
   ],
   [
-   "OpenCobolIDE is licensed under the ",
-   "OpenCobolIDE est placé sous licence "
+   "CobraIDE is licensed under the ",
+   "CobraIDE est placé sous licence "
   ],
   [
    " and is powered by open source softwares.",
@@ -104,8 +104,8 @@
   "Import preferences": "Importer les préférences",
   "Preferences (*.json);;All files (*)": "Préférences (*.json);;Tous les fichiers (*)",
   "Export preferences": "Exporter les préférences",
-  "Quit OpenCobolIDE?": "Quitter OpenCobolIDE ?",
-  "Are you sure you want to quit OpenCobolIDE?": "Voulez-vous vraiment quitter OpenCobolIDE ?",
+  "Quit CobraIDE?": "Quitter CobraIDE ?",
+  "Are you sure you want to quit CobraIDE?": "Voulez-vous vraiment quitter CobraIDE ?",
   "UNC pathnames not fully supported": "Les chemins UNC ne sont pas entièrement pris en charge",
   "You are about to open a file using a UNC pathname.\n\nUNC pathnames are not fully supported by the IDE, some features such as the file explorer tree view will not work. Depending on the compiler you're using, this might also lead to some compilation errors.\n\nYou will have better results if you map your share as a network drive...\n\nDo you still want to continue opening this file?": "Vous êtes sur le point d’ouvrir un fichier via un chemin UNC.\n\nLes chemins UNC ne sont pas entièrement pris en charge par l’EDI : certaines fonctions, comme l’arborescence de l’explorateur de fichiers, ne fonctionneront pas. Selon le compilateur utilisé, cela peut aussi provoquer des erreurs de compilation.\n\nVous aurez de meilleurs résultats si vous associez votre partage à un lecteur réseau...\n\nVoulez-vous quand même ouvrir ce fichier ?",
   "Failed to save file": "Échec de l’enregistrement du fichier",
@@ -367,8 +367,8 @@
   "Invalid dpre framework directory": "Répertoire du framework dbpre invalide",
   "%r is not a valid vcvarsall batch file": "%r n’est pas un fichier vcvarsall valide",
   "Missing one of the following files: \nPGCTBBAT: %s\nPGCTBPARAM: %s\nPGCTBSUB: %s\nPGCTBSUBWS: %s\nSQLCA: %s\n": "Un des fichiers suivants est manquant : \nPGCTBBAT : %s\nPGCTBPARAM : %s\nPGCTBSUB : %s\nPGCTBSUBWS : %s\nSQLCA : %s\n",
-  "About OpenCobolIDE": "À propos d’OpenCobolIDE",
-  "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-64x64.png\"/></p><p align=\"center\"><span style=\" font-weight:600;\">OpenCobolIDE</span></p></body></html>": "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-64x64.png\"/></p><p align=\"center\"><span style=\" font-weight:600;\">OpenCobolIDE</span></p></body></html>",
+  "About CobraIDE": "À propos de CobraIDE",
+  "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-64x64.png\"/></p><p align=\"center\"><span style=\" font-weight:600;\">CobraIDE</span></p></body></html>": "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-64x64.png\"/></p><p align=\"center\"><span style=\" font-weight:600;\">CobraIDE</span></p></body></html>",
   "Copyright (C) 2013-2016 Colin Duquesnoy": "Copyright (C) 2013-2016 Colin Duquesnoy",
   "About": "À propos",
   "Authors": "Auteurs",
@@ -552,8 +552,8 @@
   "esqlOC folder:": "Dossier esqlOC :",
   "<html><head/><body><p align=\"center\">Read the <a href=\"http://opencobolide.readthedocs.org/en/latest/advanced.html#how-to-setup-dbpre-integration-with-opencobolide\"><span style=\" text-decoration: underline; color:#2980b9;\">guide</span></a> to get started</p></body></html>": "<html><head/><body><p align=\"center\">Lisez le <a href=\"http://opencobolide.readthedocs.org/en/latest/advanced.html#how-to-setup-dbpre-integration-with-opencobolide\"><span style=\" text-decoration: underline; color:#2980b9;\">guide</span></a> pour démarrer</p></body></html>",
   "SQL COBOL": "SQL COBOL",
-  "OpenCobolIDE": "OpenCobolIDE",
-  "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Welcome to OpenCobolIDE</span></p><p align=\"center\">Click on <span style=\" font-weight:600; font-style:italic;\">New </span>or <span style=\" font-weight:600; font-style:italic;\">Open </span>to get started!</p></body></html>": "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Bienvenue dans OpenCobolIDE</span></p><p align=\"center\">Cliquez sur <span style=\" font-weight:600; font-style:italic;\">Nouveau </span>ou <span style=\" font-weight:600; font-style:italic;\">Ouvrir </span>pour commencer !</p></body></html>",
+  "CobraIDE": "CobraIDE",
+  "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Welcome to CobraIDE</span></p><p align=\"center\">Click on <span style=\" font-weight:600; font-style:italic;\">New </span>or <span style=\" font-weight:600; font-style:italic;\">Open </span>to get started!</p></body></html>": "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Bienvenue dans CobraIDE</span></p><p align=\"center\">Cliquez sur <span style=\" font-weight:600; font-style:italic;\">Nouveau </span>ou <span style=\" font-weight:600; font-style:italic;\">Ouvrir </span>pour commencer !</p></body></html>",
   "Create a new file": "Créer un nouveau fichier",
   "Open file": "Ouvrir un fichier",
   "<html><head/><body><p align=\"center\"><span style=\" font-weight:600; font-style:italic;\">Recent files</span></p></body></html>": "<html><head/><body><p align=\"center\"><span style=\" font-weight:600; font-style:italic;\">Fichiers récents</span></p></body></html>",
@@ -590,7 +590,7 @@
   "&Run": "&Exécuter",
   "Run the current editor program": "Exécuter le programme de l’éditeur courant",
   "F5": "F5",
-  "&About OpenCobolIDE": "&À propos d’OpenCobolIDE",
+  "&About CobraIDE": "&À propos de CobraIDE",
   "&Save": "&Enregistrer",
   "Save the current editor": "Enregistrer l’éditeur courant",
   "Ctrl+S": "Ctrl+S",
@@ -635,6 +635,13 @@
   "Remove from recent files list": "Retirer de la liste des fichiers récents",
   "Clear recent files list": "Effacer la liste des fichiers récents",
   "COBOL file": "Fichier COBOL",
+  "Quit OpenCobolIDE?": "Quitter OpenCobolIDE ?",
+  "Are you sure you want to quit OpenCobolIDE?": "Voulez-vous vraiment quitter OpenCobolIDE ?",
+  "About OpenCobolIDE": "À propos d’OpenCobolIDE",
+  "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-64x64.png\"/></p><p align=\"center\"><span style=\" font-weight:600;\">OpenCobolIDE</span></p></body></html>": "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-64x64.png\"/></p><p align=\"center\"><span style=\" font-weight:600;\">OpenCobolIDE</span></p></body></html>",
+  "OpenCobolIDE": "OpenCobolIDE",
+  "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Welcome to OpenCobolIDE</span></p><p align=\"center\">Click on <span style=\" font-weight:600; font-style:italic;\">New </span>or <span style=\" font-weight:600; font-style:italic;\">Open </span>to get started!</p></body></html>": "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Bienvenue dans OpenCobolIDE</span></p><p align=\"center\">Cliquez sur <span style=\" font-weight:600; font-style:italic;\">Nouveau </span>ou <span style=\" font-weight:600; font-style:italic;\">Ouvrir </span>pour commencer !</p></body></html>",
+  "&About OpenCobolIDE": "&À propos d’OpenCobolIDE",
   "Close editor?": "Fermer l’éditeur ?",
   "%s has been deleted externally. Do you want to close its editor?": "%s a été supprimé en dehors de l’éditeur. Voulez-vous fermer son éditeur ?",
   "Talking to the board...": "Communication avec la carte...",

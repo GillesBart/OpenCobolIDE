@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>OpenCobolIDE</string>
+   <string>CobraIDE</string>
   </property>
   <property name="windowIcon">
    <iconset resource="ide.qrc">
@@ -107,7 +107,7 @@
                   </size>
                  </property>
                  <property name="text">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;:/ide-icons/rc/silex-192x192.png&quot;/&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:20pt;&quot;&gt;Welcome to OpenCobolIDE&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Click on &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;New &lt;/span&gt;or &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;Open &lt;/span&gt;to get started!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;:/ide-icons/rc/silex-192x192.png&quot;/&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:20pt;&quot;&gt;Welcome to CobraIDE&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Click on &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;New &lt;/span&gt;or &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;Open &lt;/span&gt;to get started!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1047,13 +1047,13 @@
   </action>
   <action name="actionAbout">
    <property name="text">
-    <string>&amp;About OpenCobolIDE</string>
+    <string>&amp;About CobraIDE</string>
    </property>
    <property name="toolTip">
-    <string>About OpenCobolIDE</string>
+    <string>About CobraIDE</string>
    </property>
    <property name="statusTip">
-    <string>About OpenCobolIDE</string>
+    <string>About CobraIDE</string>
    </property>
    <property name="iconVisibleInMenu">
     <bool>true</bool>
