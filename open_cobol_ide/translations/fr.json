@@ -559,7 +559,7 @@
   "<html><head/><body><p align=\"center\"><span style=\" font-weight:600; font-style:italic;\">Recent files</span></p></body></html>": "<html><head/><body><p align=\"center\"><span style=\" font-weight:600; font-style:italic;\">Fichiers récents</span></p></body></html>",
   "Recent files": "Fichiers récents",
   "File toolbar": "Barre d’outils Fichier",
-  "COBOL toolbar": "Barre d’outils COBOL",
+  "Run toolbar": "Barre d’outils Exécution",
   "&Logs": "&Journaux",
   "The list of errors found in your program": "La liste des erreurs trouvées dans votre programme",
   "Issues": "Problèmes",

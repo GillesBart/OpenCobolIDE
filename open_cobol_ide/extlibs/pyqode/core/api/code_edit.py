@@ -1070,28 +1070,31 @@ class CodeEdit(QtWidgets.QPlainTextEdit):
         self.mouse_moved.emit(event)
         super(CodeEdit, self).mouseMoveEvent(event)
 
-    @staticmethod
-    def _has_file_urls(event):
+    def _refuse_drop(self, event):
+        # fichiers : ouverts par la fenetre principale ; texte glisse depuis
+        # cet editeur meme : pas de deplacement de texte par glisser-deposer
         mime = event.mimeData()
-        return mime is not None and mime.hasUrls() and any(
-            url.isLocalFile() for url in mime.urls())
+        if mime is not None and mime.hasUrls() and any(
+                url.isLocalFile() for url in mime.urls()):
+            return True
+        return event.source() in (self, self.viewport())
 
     def dragEnterEvent(self, event):
         # un fichier glisse sur l'editeur ne doit pas etre colle comme texte
         # (chemin) : on laisse la fenetre principale l'ouvrir dans un onglet
-        if self._has_file_urls(event):
+        if self._refuse_drop(event):
             event.ignore()
             return
         super(CodeEdit, self).dragEnterEvent(event)
 
     def dragMoveEvent(self, event):
-        if self._has_file_urls(event):
+        if self._refuse_drop(event):
             event.ignore()
             return
         super(CodeEdit, self).dragMoveEvent(event)
 
     def dropEvent(self, event):
-        if self._has_file_urls(event):
+        if self._refuse_drop(event):
             event.ignore()
             return
         super(CodeEdit, self).dropEvent(event)

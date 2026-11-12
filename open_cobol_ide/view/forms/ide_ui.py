@@ -477,7 +477,7 @@ class Ui_MainWindow(object):
         self.btPreferences.setText(_translate("MainWindow", "Preferences"))
         self.btAbout.setText(_translate("MainWindow", "About"))
         self.toolBarFile.setWindowTitle(_translate("MainWindow", "File toolbar"))
-        self.toolBarCOBOL.setWindowTitle(_translate("MainWindow", "COBOL toolbar"))
+        self.toolBarCOBOL.setWindowTitle(_translate("MainWindow", "Run toolbar"))
         self.dockWidgetLogs.setWindowTitle(_translate("MainWindow", "&Logs"))
         self.tabWidgetLogs.setTabText(self.tabWidgetLogs.indexOf(self.tabCompiler), _translate("MainWindow", "Compiler"))
         self.errorsTable.setStatusTip(_translate("MainWindow", "The list of errors found in your program"))
