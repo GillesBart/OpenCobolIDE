@@ -1,5 +1,5 @@
 
-.. image:: _static/silex-192x192.png
+.. image:: _static/CobraIDE.png
     :align: center
 
 Welcome to OpenCobolIDE documentation!

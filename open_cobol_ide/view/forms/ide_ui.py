@@ -14,7 +14,7 @@ class Ui_MainWindow(object):
         MainWindow.resize(1366, 768)
         MainWindow.setMinimumSize(QtCore.QSize(0, 0))
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/ide-icons/rc/silex-192x192.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/ide-icons/rc/CobraIDE-192x192.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -182,7 +182,7 @@ class Ui_MainWindow(object):
         self.textEditCompilerOutput.setObjectName("textEditCompilerOutput")
         self.gridLayout_6.addWidget(self.textEditCompilerOutput, 0, 0, 1, 1)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(":/ide-icons/rc/silex-32x32.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap(":/ide-icons/rc/CobraIDE-32x32.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.tabWidgetLogs.addTab(self.tabCompiler, icon1, "")
         self.tabCompiler1 = QtWidgets.QWidget()
         self.tabCompiler1.setObjectName("tabCompiler1")
@@ -466,7 +466,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "CobraIDE"))
-        self.label_3.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/silex-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Welcome to CobraIDE</span></p><p align=\"center\">Click on <span style=\" font-weight:600; font-style:italic;\">New </span>or <span style=\" font-weight:600; font-style:italic;\">Open </span>to get started!</p></body></html>"))
+        self.label_3.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><img src=\":/ide-icons/rc/CobraIDE-192x192.png\"/></p><p align=\"center\"><span style=\" font-size:20pt;\">Welcome to CobraIDE</span></p><p align=\"center\">Click on <span style=\" font-weight:600; font-style:italic;\">New </span>or <span style=\" font-weight:600; font-style:italic;\">Open </span>to get started!</p></body></html>"))
         self.btNewFile.setToolTip(_translate("MainWindow", "Create a new file"))
         self.btNewFile.setStatusTip(_translate("MainWindow", "Create a new file"))
         self.btNewFile.setText(_translate("MainWindow", "New file"))

@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="ide.qrc">
-    <normaloff>:/ide-icons/rc/silex-192x192.png</normaloff>:/ide-icons/rc/silex-192x192.png</iconset>
+    <normaloff>:/ide-icons/rc/CobraIDE-192x192.png</normaloff>:/ide-icons/rc/CobraIDE-192x192.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout" rowstretch="0" columnstretch="0">
@@ -107,7 +107,7 @@
                   </size>
                  </property>
                  <property name="text">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;:/ide-icons/rc/silex-192x192.png&quot;/&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:20pt;&quot;&gt;Welcome to CobraIDE&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Click on &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;New &lt;/span&gt;or &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;Open &lt;/span&gt;to get started!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;:/ide-icons/rc/CobraIDE-192x192.png&quot;/&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:20pt;&quot;&gt;Welcome to CobraIDE&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Click on &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;New &lt;/span&gt;or &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;Open &lt;/span&gt;to get started!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -506,7 +506,7 @@
        <widget class="QWidget" name="tabCompiler">
         <attribute name="icon">
          <iconset resource="ide.qrc">
-          <normaloff>:/ide-icons/rc/silex-32x32.png</normaloff>:/ide-icons/rc/silex-32x32.png</iconset>
+          <normaloff>:/ide-icons/rc/CobraIDE-32x32.png</normaloff>:/ide-icons/rc/CobraIDE-32x32.png</iconset>
         </attribute>
         <attribute name="title">
          <string>Compiler</string>

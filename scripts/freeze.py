@@ -41,7 +41,7 @@ console_name = 'pyqode-console'
 console_exe = 'pyqode-console.exe' if windows else 'pyqode-console'
 
 
-app_icon = 'forms/rc/silex-icon.ico' if windows else 'share/silex-icon.icns'
+app_icon = 'forms/rc/CobraIDE.ico' if windows else 'share/silex-icon.icns'
 
 
 if len(sys.argv) == 1:

@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="ide.qrc">
-    <normaloff>:/ide-icons/rc/silex-192x192.png</normaloff>:/ide-icons/rc/silex-192x192.png</iconset>
+    <normaloff>:/ide-icons/rc/CobraIDE-192x192.png</normaloff>:/ide-icons/rc/CobraIDE-192x192.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

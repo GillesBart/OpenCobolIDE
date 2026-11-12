@@ -14,7 +14,7 @@ class Ui_Dialog(object):
         Dialog.resize(1280, 1024)
         Dialog.setMinimumSize(QtCore.QSize(500, 500))
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/ide-icons/rc/silex-192x192.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/ide-icons/rc/CobraIDE-192x192.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         Dialog.setWindowIcon(icon)
         self.gridLayout_2 = QtWidgets.QGridLayout(Dialog)
         self.gridLayout_2.setContentsMargins(6, 6, 6, 6)
