@@ -1070,6 +1070,32 @@ class CodeEdit(QtWidgets.QPlainTextEdit):
         self.mouse_moved.emit(event)
         super(CodeEdit, self).mouseMoveEvent(event)
 
+    @staticmethod
+    def _has_file_urls(event):
+        mime = event.mimeData()
+        return mime is not None and mime.hasUrls() and any(
+            url.isLocalFile() for url in mime.urls())
+
+    def dragEnterEvent(self, event):
+        # un fichier glisse sur l'editeur ne doit pas etre colle comme texte
+        # (chemin) : on laisse la fenetre principale l'ouvrir dans un onglet
+        if self._has_file_urls(event):
+            event.ignore()
+            return
+        super(CodeEdit, self).dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        if self._has_file_urls(event):
+            event.ignore()
+            return
+        super(CodeEdit, self).dragMoveEvent(event)
+
+    def dropEvent(self, event):
+        if self._has_file_urls(event):
+            event.ignore()
+            return
+        super(CodeEdit, self).dropEvent(event)
+
     def showEvent(self, event):
         """ Overrides showEvent to update the viewport margins """
         super(CodeEdit, self).showEvent(event)

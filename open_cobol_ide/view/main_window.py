@@ -96,20 +96,28 @@ class MainWindow(QtWidgets.QMainWindow):
                 console.stop_process()
             _logger().debug('CLOSED')
 
-    def dragEnterEvent(self, event):
+    @staticmethod
+    def _dropped_files(event):
         mime = event.mimeData()
         if mime is None or not mime.hasUrls():
-            return
-        event.accept()
+            return []
+        paths = [url.toLocalFile() for url in mime.urls()
+                 if url.isLocalFile()]
+        return [os.path.normpath(p) for p in paths if os.path.isfile(p)]
+
+    def dragEnterEvent(self, event):
+        if self._dropped_files(event):
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        if self._dropped_files(event):
+            event.acceptProposedAction()
 
     def dropEvent(self, event):
-        mime = event.mimeData()
-        if mime is None or not mime.hasUrls():
+        paths = self._dropped_files(event)
+        if not paths:
             return
-        for url in mime.urls():
-            path = url.path()
-            if system.windows and path.startswith('/'):
-                path = path[1:]
-            if os.path.isfile(path):
-                # open a new editor
-                self.app.file.open_file(path)
+        event.acceptProposedAction()
+        for path in paths:
+            # open a new editor
+            self.app.file.open_file(path)
