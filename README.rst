@@ -164,8 +164,8 @@ Screenshots
 
 .. _PyQt4: http://www.riverbankcomputing.co.uk/software/pyqt/download
 .. _Downloads: https://launchpad.net/cobcide/+download
-.. _Source repository: https://github.com/OpenCobolIDE/OpenCobolIDE/
-.. _Issue tracker: https://github.com/OpenCobolIDE/OpenCobolIDE/issues?state=open
+.. _Source repository: https://github.com/GillesBart/CobraIDE/
+.. _Issue tracker: https://github.com/GillesBart/CobraIDE/issues?state=open
 .. _Documentation: http://opencobolide.readthedocs.org/en/latest/
 .. _Pygments: http://pygments.org/
 .. _pyqode.core: https://github.com/pyQode/pyqode.core/

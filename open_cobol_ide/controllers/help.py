@@ -39,7 +39,7 @@ class HelpController(Controller):
 
     def report_bug(self):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(
-            'https://github.com/OpenCobolIDE/OpenCobolIDE/issues'))
+            'https://github.com/GillesBart/CobraIDE/issues'))
 
     def restore_factory_defaults(self):
         answer = QtWidgets.QMessageBox.question(

@@ -57,8 +57,8 @@ class DlgAbout(QtWidgets.QDialog, dlg_about_ui.Ui_Dialog):
                    'Duquesnoy and contributors, which is no longer '
                    'maintained.'),
                 tr('Source code: %s') % (
-                    '<a href="https://github.com/GillesBart/OpenCobolIDE">'
-                    'github.com/GillesBart/OpenCobolIDE</a>')))
+                    '<a href="https://github.com/GillesBart/CobraIDE">'
+                    'github.com/GillesBart/CobraIDE</a>')))
         text = self.labelMain.text()
         assert '</body>' in text
         self.labelMain.setText(text.replace('</body>', extra + '</body>'))

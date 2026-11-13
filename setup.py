@@ -65,7 +65,7 @@ setup(
     name='OpenCobolIDE',
     version=__version__,
     keywords=['Cobol; OpenCobol; IDE'],
-    url='https://github.com/OpenCobolIDE/OpenCobolIDE',
+    url='https://github.com/GillesBart/CobraIDE',
     license='GPL v3',
     author='Colin Duquesnoy',
     author_email='colin.duquesnoy@gmail.com',

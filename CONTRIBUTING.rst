@@ -25,4 +25,4 @@ Please use **PEP8** to style your code (PEP8 compliance is tested Travis CI)::
 
     python setup.py test -a "--pep8 -m pep8"
 
-.. _bug tracker: https://github.com/OpenCobolIDE/OpenCobolIDE/issues?state=open
+.. _bug tracker: https://github.com/GillesBart/CobraIDE/issues?state=open
