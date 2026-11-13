@@ -97,10 +97,10 @@ class EncodingsMenu(QtWidgets.QMenu):
         self._current_encoding = convert_to_codec_key(value)
         self._refresh()
 
-    def __init__(self, title=_('Encodings'), parent=None,
+    def __init__(self, title=None, parent=None,
                  selected_encoding=locale.getpreferredencoding()):
         super(EncodingsMenu, self).__init__(parent)
-        self.setTitle(title)
+        self.setTitle(title if title else _('Encodings'))
         self._group = QtWidgets.QActionGroup(self)
         self._edit_action = None
         self._current_encoding = ''
@@ -152,7 +152,7 @@ class EncodingsContextMenu(EncodingsMenu):
 
     The parent widget of the menu must be set to a CodeEdit instance.
     """
-    def __init__(self, title='Encodings', parent=None,
+    def __init__(self, title=None, parent=None,
                  selected_encoding=locale.getpreferredencoding()):
         from pyqode.core.api import CodeEdit
         assert isinstance(parent, CodeEdit)
