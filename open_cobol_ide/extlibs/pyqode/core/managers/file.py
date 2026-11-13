@@ -358,7 +358,7 @@ class FileManager(Manager):
             # change
             return
         if fallback_encoding is None:
-            fallback_encoding = locale.getpreferredencoding()
+            fallback_encoding = 'utf-8'
         _logger().log(
             5, "saving %r with %r encoding", path, encoding)
         if path is None:
@@ -392,9 +392,11 @@ class FileManager(Manager):
             with open(tmp_path, 'wb') as file:
                 file.write(self._get_text(encoding))
         except UnicodeEncodeError:
-            # fallback to utf-8 in case of error.
+            # fallback to utf-8 in case of error; c'est cet encodage qui est
+            # mémorisé (sinon le fichier serait relu avec le mauvais)
+            encoding = fallback_encoding
             with open(tmp_path, 'wb') as file:
-                file.write(self._get_text(fallback_encoding))
+                file.write(self._get_text(encoding))
         except (IOError, OSError) as e:
             self._rm(tmp_path)
             self.saving = False

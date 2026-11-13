@@ -8,6 +8,7 @@ import weakref
 from pyqode.core.api import TextHelper
 from pyqode.core.panels import EncodingPanel
 from pyqode.core.cache import Cache
+from pyqode.core.widgets.splittable_tab_widget import CodeEditTabWidget
 from pyqode.qt import QtCore, QtGui, QtWidgets
 from .base import Controller
 from open_cobol_ide.translation import tr
@@ -48,6 +49,10 @@ class EditController(Controller):
         self.ui.tabWidgetEditors.last_tab_closed.connect(
             self._on_last_tab_closed)
         self._replacing_editor = False
+        # enregistrement sous un nom .py : toujours en UTF-8 (et non
+        # l'encodage de la machine, qui échoue sur certains caractères)
+        CodeEditTabWidget.encoding_for_path = staticmethod(
+            self._encoding_for_new_path)
         self.ui.tabWidgetEditors.document_saved.connect(
             self._on_document_saved)
         self.ui.tableWidgetOffsets.show_requested.connect(
@@ -258,6 +263,12 @@ class EditController(Controller):
         tabs_widget.setTabText(tabs_widget.indexOf(editor), name)
         self.app.view.show_edit_page()
         return editor
+
+    @staticmethod
+    def _encoding_for_new_path(path):
+        if os.path.splitext(path)[1].lower() in PythonCodeEdit.extensions:
+            return 'utf-8'
+        return None
 
     def _on_document_saved(self, path, old_content):
         """

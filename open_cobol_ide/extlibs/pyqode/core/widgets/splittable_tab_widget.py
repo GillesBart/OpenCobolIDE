@@ -1089,6 +1089,11 @@ class CodeEditTabWidget(BaseTabWidget):
             except AttributeError:
                 _logger().debug('saving %r as %r', editor.file.path, path)
             editor.file._path = path
+            chooser = getattr(cls, 'encoding_for_path', None)
+            if chooser is not None:
+                encoding = chooser(path)
+                if encoding:
+                    editor.file._encoding = encoding
         else:
             path = editor.file.path
         try:
