@@ -47,6 +47,9 @@ class EditController(Controller):
             self._current_changed)
         self.ui.tabWidgetEditors.last_tab_closed.connect(
             self._on_last_tab_closed)
+        self._replacing_editor = False
+        self.ui.tabWidgetEditors.document_saved.connect(
+            self._on_document_saved)
         self.ui.tableWidgetOffsets.show_requested.connect(
             self.ui.dockWidgetOffsets.show)
         self.ui.actionPreferences.triggered.connect(self.edit_preferences)
@@ -256,7 +259,68 @@ class EditController(Controller):
         self.app.view.show_edit_page()
         return editor
 
+    def _on_document_saved(self, path, old_content):
+        """
+        Après un enregistrement : si l'extension du fichier ne correspond plus
+        au type de l'éditeur (nouveau.txt enregistré en .py ou .cob), on
+        remplace l'onglet par un éditeur du bon type (coloration, menus...).
+        """
+        tabs = self.ui.tabWidgetEditors
+        for editor in tabs.widgets(include_clones=False):
+            if editor.dirty or editor.clones:
+                continue
+            file_path = editor.file.path
+            if not file_path or not os.path.exists(file_path):
+                continue
+            expected = tabs.editors.get(
+                tabs.guess_mimetype(file_path), tabs.fallback_editor)
+            if type(editor) is not expected:
+                QtCore.QTimer.singleShot(
+                    0, lambda e=editor: self._replace_editor(e))
+                return
+
+    def _replace_editor(self, editor):
+        """
+        Ferme l'onglet (déjà enregistré) et le rouvre avec l'éditeur adapté à
+        son extension, au même endroit, avec le même curseur.
+        """
+        tabs = self.ui.tabWidgetEditors
+        try:
+            path = editor.file.path
+            tw = editor.parent_tab_widget
+            index = tw.indexOf(editor)
+            position = editor.textCursor().position()
+            scroll = editor.verticalScrollBar().value()
+            encoding = editor.file.encoding
+        except (AttributeError, RuntimeError):
+            return
+        if editor.dirty or index < 0:
+            return
+        if os.path.splitext(path)[1].lower() not in PythonCodeEdit.extensions:
+            Cache().set_file_encoding(path, encoding)
+        self._replacing_editor = True
+        try:
+            tabs.close_document(path)
+            new = self.add_editor(path)
+        finally:
+            self._replacing_editor = False
+        if new is None:
+            return
+        try:
+            if new.parent_tab_widget is tw:
+                tw.tabBar().moveTab(tw.indexOf(new), index)
+            cursor = new.textCursor()
+            cursor.setPosition(min(position, new.document().characterCount() - 1))
+            new.setTextCursor(cursor)
+            new.verticalScrollBar().setValue(scroll)
+            new.parent_tab_widget.setCurrentWidget(new)
+            new.setFocus()
+        except (AttributeError, RuntimeError):
+            pass
+
     def _on_last_tab_closed(self):
+        if self._replacing_editor:
+            return          # remplacement d'éditeur : l'onglet est rouvert
         self.main_window.save_state()
         self.main_window.setWindowTitle(self.app.title)
         self.ui.twNavigation.set_editor(None)
