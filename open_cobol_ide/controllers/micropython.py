@@ -66,8 +66,6 @@ class MicroPythonController(Controller):
         self.actionPort = self._add(tr('Board &port...'), self.choose_port)
         self.actionRun = self._add(
             tr('&Run on the board'), self.run_on_board, 'Shift+F5')
-        self.actionSend = self._add(
-            tr('&Send to the board...'), self.send_to_board)
         self.actionFiles = self._add(
             tr('&Files on the board'), self.list_files)
         self.actionResetBefore = self._add(
@@ -292,23 +290,6 @@ class MicroPythonController(Controller):
             reset = Settings().micropython_reset
             self.board_run_active = True
             self._start(interpreter, self._args('run', path, reset=reset),
-                        os.path.dirname(path))
-
-    def send_to_board(self):
-        """Copie le fichier courant sur la carte (par exemple en main.py)."""
-        path = self._current_python_file()
-        if path is None:
-            return
-        name, ok = QtWidgets.QInputDialog.getText(
-            self.main_window, tr('Send to the board'),
-            tr('File name on the board:'), QtWidgets.QLineEdit.Normal,
-            os.path.basename(path))
-        name = name.strip().lstrip(':/') if ok else ''
-        if not name:
-            return
-        interpreter = self._prepare()
-        if interpreter:
-            self._start(interpreter, self._args('cp', path, ':' + name),
                         os.path.dirname(path))
 
     def list_files(self):
