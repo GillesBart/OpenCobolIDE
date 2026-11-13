@@ -22,7 +22,7 @@ from open_cobol_ide import system
 from open_cobol_ide.settings import Settings
 from open_cobol_ide.translation import tr
 from open_cobol_ide.view.widgets import FileIconProvider
-from .python import child_environment, no_window_kwargs
+from .python import child_environment, find_interpreter, no_window_kwargs
 
 
 def _logger():
@@ -227,6 +227,24 @@ class _Job(QtCore.QThread):
             self.done.emit(result.returncode, result.stdout, result.stderr)
 
 
+class _MpremoteCheck(QtCore.QThread):
+    """
+    Vérifie dans un fil séparé que mpremote est installé pour l'interpréteur
+    donné (lancer Python et importer mpremote prend plusieurs secondes sous
+    Windows : ce ne doit jamais bloquer l'interface).
+    """
+    done = QtCore.Signal(str)       # l'interpréteur, ou '' si mpremote absent
+
+    def __init__(self, interpreter, parent=None):
+        super().__init__(parent)
+        self.interpreter = interpreter
+
+    def run(self):
+        from .micropython import MicroPythonController
+        ok = MicroPythonController._has_mpremote(self.interpreter)
+        self.done.emit(self.interpreter if ok else '')
+
+
 class BoardFilesPanel(QtCore.QObject):
     """
     Arbre des fichiers de la carte, placé dans le dock « Système de fichiers ».
@@ -241,6 +259,7 @@ class BoardFilesPanel(QtCore.QObject):
         self._job = None
         self._interpreter = None
         self._interpreter_key = None
+        self._check = None          # vérification de mpremote en cours
         #: identité de la carte dont l'arborescence est affichée (None : aucune)
         self._shown_id = None
         self._pending = 0           # envois de fichiers en cours
@@ -343,14 +362,40 @@ class BoardFilesPanel(QtCore.QObject):
         """
         if self._job is not None or self._queue:
             return
-        if self._interpreter is None and \
-                self.controller.quiet_interpreter() is None:
-            # mpremote pas prêt : aucune carte n'est utilisable, donc aucun
-            # fichier de carte ne doit rester ouvrable
-            if self._connected is None:
-                self._update_connected(set())
+        if self._interpreter is None:
+            self._check_mpremote()      # en arrière-plan, puis on reprend
             return
         self._run(['connect', 'list'], self._polled, raw=True)
+
+    def _mpremote_missing(self):
+        # mpremote pas prêt : aucune carte n'est utilisable, donc aucun
+        # fichier de carte ne doit rester ouvrable
+        if self._connected is None:
+            self._update_connected(set())
+
+    def _check_mpremote(self):
+        """Cherche l'interpréteur et vérifie mpremote sans bloquer l'IDE."""
+        if self._check is not None:
+            return
+        interpreter = None
+        if not self.controller.ui.consoleOutput.is_running:
+            interpreter = find_interpreter()
+        if not interpreter:
+            self._mpremote_missing()
+            return
+        self._check = _MpremoteCheck(interpreter, self)
+        self._check.done.connect(self._on_mpremote_checked)
+        self._check.finished.connect(self._check.deleteLater)
+        self._check.start()
+
+    def _on_mpremote_checked(self, interpreter):
+        self._check = None
+        if not interpreter:
+            self._mpremote_missing()
+            return
+        self._interpreter = interpreter
+        self._interpreter_key = Settings().python_interpreter
+        self._poll()
 
     def recent_available(self, path):
         """
