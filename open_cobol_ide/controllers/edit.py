@@ -281,6 +281,18 @@ class EditController(Controller):
 
     def _replace_editor(self, editor):
         """
+        Remplace l'éditeur sans rafraîchir la fenêtre pendant l'opération
+        (évite que l'onglet « clignote »).
+        """
+        window = self.main_window
+        window.setUpdatesEnabled(False)
+        try:
+            self._do_replace_editor(editor)
+        finally:
+            window.setUpdatesEnabled(True)
+
+    def _do_replace_editor(self, editor):
+        """
         Ferme l'onglet (déjà enregistré) et le rouvre avec l'éditeur adapté à
         son extension, au même endroit, avec le même curseur.
         """
