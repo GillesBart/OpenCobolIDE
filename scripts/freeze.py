@@ -23,7 +23,7 @@ if '.dev' in version or '.a' in version or '.b' in version or '.rc' in version:
 windows = sys.platform == 'win32'
 osx = sys.platform == 'darwin'
 
-app_script = 'OpenCobolIDE.pyw'
+app_script = 'CobraIDE.pyw'
 app_name = 'CobraIDE'
 app_exe = 'CobraIDE.exe' if windows else 'CobraIDE'
 
