@@ -53,6 +53,13 @@ class EditController(Controller):
         # l'encodage de la machine, qui échoue sur certains caractères)
         CodeEditTabWidget.encoding_for_path = staticmethod(
             self._encoding_for_new_path)
+        # boîte « Enregistrer sous » : mêmes types que « Ouvrir », plus le texte
+        # (sans cela, un nouveau document texte ne proposait que text/plain)
+        CodeEditTabWidget.save_filter = (
+            tr('COBOL and Python files') + ' (*.cbl *.py);;' +
+            tr('COBOL files') + ' (*.cbl);;' + tr('Python files') +
+            ' (*.py);;' + tr('Text files') + ' (*.txt);;' +
+            tr('All files') + ' (*)')
         self.ui.tabWidgetEditors.document_saved.connect(
             self._on_document_saved)
         self.ui.tableWidgetOffsets.show_requested.connect(

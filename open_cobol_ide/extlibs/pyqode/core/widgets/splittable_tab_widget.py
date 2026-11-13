@@ -1054,10 +1054,12 @@ class CodeEditTabWidget(BaseTabWidget):
 
         :return: save filename
         """
-        try:
-            filter = cls.get_filter(editor.mimetypes[0])
-        except IndexError:
-            filter = _('All files (*)')
+        filter = getattr(cls, 'save_filter', None)
+        if not filter:
+            try:
+                filter = cls.get_filter(editor.mimetypes[0])
+            except IndexError:
+                filter = _('All files (*)')
         return QtWidgets.QFileDialog.getSaveFileName(
             editor, _('Save file as'), cls.default_directory, filter)
 
